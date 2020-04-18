@@ -1,0 +1,83 @@
+linters-settings:
+  dupl:
+    threshold: 100
+  funlen:
+    lines: 100
+    statements: 50
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    settings:
+      hugeParam:
+        sizeThreshold: 200
+  gocyclo:
+    min-complexity: 20
+  goimports:
+    local-prefixes: github.com/golangci/golangci-lint
+  golint:
+    min-confidence: 0
+  govet:
+    check-shadowing: true
+  lll:
+    line-length: 140
+  maligned:
+    suggest-new: true
+  misspell:
+    locale: US
+  nakedret:
+    max-func-lines: 0
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - funlen
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - golint
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - interfacer
+    - lll
+    - misspell
+    - nakedret
+    - scopelint
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+    - gochecknoglobals
+    - gocognit
+    - maligned
+    - prealloc
+    - wsl
+    - goprintffuncname
+    - rowserrcheck
+    - gomnd
+    - godox
+
+run:
+  timeout: 5m

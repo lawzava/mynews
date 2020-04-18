@@ -51,7 +51,7 @@ func newParser(cfg config) (*parser, error) {
 }
 
 func (p parser) run() error {
-	startedAt := time.Now() // used to prevent broadcasting historical stories
+	startedAt := time.Now().UTC().Format(time.RFC3339) // used to prevent broadcasting historical stories
 
 	for {
 		for _, source := range p.sources {
@@ -61,7 +61,7 @@ func (p parser) run() error {
 			}
 
 			for _, story := range feed.Items {
-				if story.Published < startedAt.String() {
+				if story.Published < startedAt {
 					continue
 				}
 

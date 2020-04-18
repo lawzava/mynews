@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"news/broadcast"
 	"news/store"
 	"time"
 
@@ -11,8 +12,9 @@ import (
 type parser struct {
 	fp *gofeed.Parser
 
-	sources []string
-	store   store.Store
+	sources   []string
+	store     store.Store
+	broadcast broadcast.Broadcast
 
 	config
 }
@@ -31,11 +33,17 @@ func newParser(cfg config) (*parser, error) {
 		return nil, fmt.Errorf("creating store: %w", err)
 	}
 
+	brc, err := broadcast.New(cfg.broadcast)
+	if err != nil {
+		return nil, fmt.Errorf("creating broadcast: %w", err)
+	}
+
 	return &parser{
-		fp:      gofeed.NewParser(),
-		sources: cfg.sources,
-		config:  cfg,
-		store:   stg,
+		fp:        gofeed.NewParser(),
+		sources:   cfg.sources,
+		config:    cfg,
+		store:     stg,
+		broadcast: brc,
 	}, nil
 }
 
@@ -50,7 +58,9 @@ func (p parser) run() error {
 			for _, story := range feed.Items {
 				storyID := buildStoryID(source, story.Title, story.Link, story.Published)
 
-				storyWasSent, err := p.store.KeyExists(storyID)
+				var storyWasSent bool
+
+				storyWasSent, err = p.store.KeyExists(storyID)
 				if err != nil {
 					return fmt.Errorf("checking if story was already sent: %w", err)
 				}
@@ -59,12 +69,18 @@ func (p parser) run() error {
 					continue
 				}
 
-				if err := p.store.PutKey(storyID); err != nil {
+				if err = p.store.PutKey(storyID); err != nil {
 					return fmt.Errorf("registering story as sent: %w", err)
 				}
 
-				fmt.Printf("%s | %s \n",
-					story.Title, story.Link)
+				newBroadcastMessage := broadcast.Message{
+					Title: story.Title,
+					Link:  story.Link,
+				}
+
+				if err = p.broadcast.Send(newBroadcastMessage); err != nil {
+					return fmt.Errorf("broadcasting story: %w", err)
+				}
 			}
 		}
 

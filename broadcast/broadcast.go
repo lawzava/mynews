@@ -15,7 +15,8 @@ type Broadcast interface {
 
 type Config struct {
 	Type
-	Telegram telegramConfig
+
+	Telegram telegram
 }
 
 func (c Config) Validate() error {
@@ -30,7 +31,7 @@ func (c Config) Validate() error {
 
 func New(cfg Config) (Broadcast, error) {
 	if cfg.Type == TypeTelegram {
-		return newTelegram(cfg.Telegram)
+		return &cfg.Telegram, nil
 	}
 
 	return nil, nil

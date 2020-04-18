@@ -30,6 +30,16 @@ func (cfg config) validate() error {
 }
 
 func parseConfig() (config, error) {
+	const (
+		nameSources            = "sources"
+		nameInterval           = "interval"
+		nameStore              = "store"
+		nameStoreAccessDetails = "storeAccessDetails"
+		nameBroadcastType      = "broadcastType"
+		nameTelegramBotToken   = "telegramBotToken"
+		nameTelegramChatID     = "telegramChatID"
+	)
+
 	var (
 		sources             string
 		storeType           string
@@ -38,19 +48,19 @@ func parseConfig() (config, error) {
 
 		broadcastType    string
 		telegramBotToken string
-		telegramChatID   int64
+		telegramChatID   string
 	)
 
-	flag.StringVar(&sources, "sources", "https://hnrss.org/newest.atom", "rss/atom source URLs separated by a comma")
-	flag.Uint64Var(&intervalBetweenRuns, "interval", 60, "interval in seconds between each feed parsing run")
-	flag.StringVar(&storeType, "store", "memory",
+	flag.StringVar(&sources, nameSources, "https://hnrss.org/newest.atom", "rss/atom source URLs separated by a comma")
+	flag.Uint64Var(&intervalBetweenRuns, nameInterval, 60, "interval in seconds between each feed parsing run")
+	flag.StringVar(&storeType, nameStore, "memory",
 		"store type to use. Valid values are: 'memory' (persistent hash map), 'postgres', 'redis'")
-	flag.StringVar(&storeAccessDetails, "storeAccessDetails", "redis://localhost:6379",
+	flag.StringVar(&storeAccessDetails, nameStoreAccessDetails, "redis://localhost:6379",
 		"store access URI if the type is not 'memory'")
 
-	flag.StringVar(&broadcastType, "broadcastType", "telegram", "broadcast type to use. Valid values are: 'telegram'")
-	flag.StringVar(&telegramBotToken, "telegramBottoken", "", "telegram bot token to use with 'telegram' broadcast type")
-	flag.Int64Var(&telegramChatID, "telegramChatID", 0, "telegram chatID to use with 'telegram' broadcast type")
+	flag.StringVar(&broadcastType, nameBroadcastType, "telegram", "broadcast type to use. Valid values are: 'telegram'")
+	flag.StringVar(&telegramBotToken, nameTelegramBotToken, "", "telegram bot token to use with 'telegram' broadcast type")
+	flag.StringVar(&telegramChatID, nameTelegramChatID, "", "telegram chatID to use with 'telegram' broadcast type")
 
 	flag.Parse()
 

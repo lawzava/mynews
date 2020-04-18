@@ -5,10 +5,6 @@ RSS/Atom feed watcher, filtering by keywords and broadcasting to multiple channe
 
 ## TODO:
 
-#### v1.0
-- Parse HN feed
-- Push to stdout
-
 #### v1.1
 - Parse a config for feed sources / keywords
 - Push to Telegram

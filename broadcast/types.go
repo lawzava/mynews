@@ -1,4 +1,4 @@
-package store
+package broadcast
 
 import (
 	"errors"
@@ -8,20 +8,13 @@ import (
 type Type uint
 
 const (
-	TypeMemory Type = iota
-	TypeRedis
-	TypePostgres
+	TypeTelegram Type = iota
 )
 
 func ParseType(s string) (Type, error) {
-	switch strings.ToUpper(s) {
-	case "MEMORY":
-		return TypeMemory, nil
-	case "REDIS":
-		return TypeRedis, nil
-	case "POSTGRES":
-		return TypePostgres, nil
+	if strings.EqualFold(s, "TELEGRAM") {
+		return TypeTelegram, nil
 	}
 
-	return 0, errors.New("storage type not recognized")
+	return 0, errors.New("broadcast type not recognized")
 }

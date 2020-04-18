@@ -1,4 +1,4 @@
-package storage
+package store
 
 type memory struct {
 	storage map[string]bool

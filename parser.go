@@ -1,46 +1,45 @@
-package parser
+package main
 
 import (
 	"fmt"
-	"news/internal/pkg/identity"
-	"news/internal/pkg/storage"
+	"news/store"
 	"time"
 
 	"github.com/mmcdole/gofeed"
 )
 
-type Parser struct {
+type parser struct {
 	fp *gofeed.Parser
 
 	sources []string
-	storage storage.Storage
+	store   store.Store
 
-	Config
+	config
 }
 
-func New(cfg Config) (*Parser, error) {
+func newParser(cfg config) (*parser, error) {
 	const (
 		defaultSleepDuration = 10 * time.Second
 	)
 
-	if cfg.SleepDurationBetweenRuns == 0 {
-		cfg.SleepDurationBetweenRuns = defaultSleepDuration
+	if cfg.sleepDurationBetweenRuns == 0 {
+		cfg.sleepDurationBetweenRuns = defaultSleepDuration
 	}
 
-	stg, err := storage.New(cfg.StorageType, cfg.StorageAccessDetails)
+	stg, err := store.New(cfg.store)
 	if err != nil {
-		return nil, fmt.Errorf("creating storage: %w", err)
+		return nil, fmt.Errorf("creating store: %w", err)
 	}
 
-	return &Parser{
+	return &parser{
 		fp:      gofeed.NewParser(),
-		sources: cfg.Sources,
-		Config:  cfg,
-		storage: stg,
+		sources: cfg.sources,
+		config:  cfg,
+		store:   stg,
 	}, nil
 }
 
-func (p Parser) Run() error {
+func (p parser) run() error {
 	for {
 		for _, source := range p.sources {
 			feed, err := p.fp.ParseURL(source)
@@ -49,9 +48,9 @@ func (p Parser) Run() error {
 			}
 
 			for _, story := range feed.Items {
-				storyID := identity.New(source, story.Title, story.Link, story.Published)
+				storyID := buildStoryID(source, story.Title, story.Link, story.Published)
 
-				storyWasSent, err := p.storage.KeyExists(storyID)
+				storyWasSent, err := p.store.KeyExists(storyID)
 				if err != nil {
 					return fmt.Errorf("checking if story was already sent: %w", err)
 				}
@@ -60,7 +59,7 @@ func (p Parser) Run() error {
 					continue
 				}
 
-				if err := p.storage.PutKey(storyID); err != nil {
+				if err := p.store.PutKey(storyID); err != nil {
 					return fmt.Errorf("registering story as sent: %w", err)
 				}
 
@@ -69,6 +68,6 @@ func (p Parser) Run() error {
 			}
 		}
 
-		time.Sleep(p.Config.SleepDurationBetweenRuns)
+		time.Sleep(p.config.sleepDurationBetweenRuns)
 	}
 }

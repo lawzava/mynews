@@ -26,3 +26,10 @@ removeme*
 
 # Temporary files
 *.swp # vim
+
+# Snapcraft Files
+parts
+prime
+snap
+stage
+*.snap*

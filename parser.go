@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/md5" // nolint:gosec speed is higher concern than security in this use case
+	"encoding/hex"
 	"fmt"
-	"news/broadcast"
-	"news/store"
+	"mynews/broadcast"
+	"mynews/store"
+	"strings"
 	"time"
 
 	"github.com/mmcdole/gofeed"
@@ -86,4 +89,12 @@ func (p parser) run() error {
 
 		time.Sleep(p.config.sleepDurationBetweenRuns)
 	}
+}
+
+func buildStoryID(in ...string) string {
+	h := md5.New() // nolint:gosec speed is higher concern than security in this use case
+
+	_, _ = h.Write([]byte(strings.Join(in, "-")))
+
+	return hex.EncodeToString(h.Sum(nil))
 }

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mynews/validate"
 	"net/http"
-	"news/validate"
 	"strings"
 )
 

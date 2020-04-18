@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"news/broadcast"
-	"news/store"
+	"mynews/broadcast"
+	"mynews/store"
 	"strings"
 	"time"
 )

@@ -2,7 +2,7 @@ package store
 
 import (
 	"errors"
-	"news/validate"
+	"mynews/validate"
 )
 
 type Store interface {

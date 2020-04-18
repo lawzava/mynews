@@ -22,7 +22,7 @@ parts:
       export CGO_ENABLED=0
       go build -o ../../../prime/bin/scrape
 apps:
-  scrape:
-    command: bin/scrape
+  mynews:
+    command: bin/mynews
     plugs:
       - network

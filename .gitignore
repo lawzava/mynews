@@ -1,0 +1,28 @@
+# IDE files
+/.idea/
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bin
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+/.env
+
+# Mac Files
+.DS_Store
+
+# Prefixes to keep local config or temporary files hidden from git
+local*
+!*.go
+removeme*
+
+# Temporary files
+*.swp # vim

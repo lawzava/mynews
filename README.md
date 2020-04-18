@@ -1,4 +1,7 @@
-# News
+![CI](https://github.com/lawzava/mynews/workflows/ci/badge.svg)
+![MyNews](https://snapcraft.io/mynews/badge.svg)](https://snapcraft.io/mynews)
+
+# MyNews
 
 Personalized news feed parser & broadcast
 

@@ -47,8 +47,6 @@ func (t telegram) Send(message Message) error {
 		return fmt.Errorf("preparing request body: %w", err)
 	}
 
-	fmt.Println(string(requestBody))
-
 	requestURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", t.BotAPIToken)
 
 	req, _ := http.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(requestBody))

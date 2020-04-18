@@ -51,6 +51,8 @@ func newParser(cfg config) (*parser, error) {
 }
 
 func (p parser) run() error {
+	startedAt := time.Now() // used to prevent broadcasting historical stories
+
 	for {
 		for _, source := range p.sources {
 			feed, err := p.fp.ParseURL(source)
@@ -59,6 +61,10 @@ func (p parser) run() error {
 			}
 
 			for _, story := range feed.Items {
+				if story.Published < startedAt.String() {
+					continue
+				}
+
 				storyID := buildStoryID(story.Title, story.Link)
 
 				var storyWasSent bool

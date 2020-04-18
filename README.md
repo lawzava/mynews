@@ -1,6 +1,4 @@
-![CI](https://github.com/lawzava/mynews/workflows/CI/badge.svg)
-
-[![MyNews](https://snapcraft.io/mynews/badge.svg)](https://snapcraft.io/mynews)
+[![MyNews](https://snapcraft.io/mynews/badge.svg)](https://snapcraft.io/mynews) ![CI](https://github.com/lawzava/mynews/workflows/CI/badge.svg)
 
 # MyNews
 

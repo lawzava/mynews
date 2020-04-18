@@ -59,7 +59,7 @@ func (p parser) run() error {
 			}
 
 			for _, story := range feed.Items {
-				storyID := buildStoryID(source, story.Title, story.Link, story.Published)
+				storyID := buildStoryID(story.Title, story.Link)
 
 				var storyWasSent bool
 
@@ -88,6 +88,8 @@ func (p parser) run() error {
 				time.Sleep(p.config.sleepDurationBetweenBroadcasts)
 			}
 		}
+
+		time.Sleep(p.config.sleepDurationBetweenFeedParsing)
 	}
 }
 

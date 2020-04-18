@@ -1,5 +1,5 @@
 name: mynews
-version: '1.1.2'
+version: '1.1.3'
 summary: Personalized news feed parser & broadcast
 description: |
     Easily specify your RSS/Atom sources and broadcast preferences to get personalized news feed.

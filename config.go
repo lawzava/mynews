@@ -10,8 +10,9 @@ import (
 )
 
 type config struct {
-	sleepDurationBetweenBroadcasts time.Duration
-	sources                        []string
+	sleepDurationBetweenFeedParsing time.Duration
+	sleepDurationBetweenBroadcasts  time.Duration
+	sources                         []string
 
 	store     store.Config
 	broadcast broadcast.Config
@@ -32,19 +33,21 @@ func (cfg config) validate() error {
 func parseConfig() (config, error) {
 	const (
 		nameSources            = "sources"
-		nameInterval           = "interval"
+		nameFeedParseInterval  = "feedParseInterval"
 		nameStore              = "store"
 		nameStoreAccessDetails = "storeAccessDetails"
 		nameBroadcastType      = "broadcastType"
+		nameBroadcastInterval  = "broadcastInterval"
 		nameTelegramBotToken   = "telegramBotToken"
 		nameTelegramChatID     = "telegramChatID"
 	)
 
 	var (
-		sources             string
-		storeType           string
-		storeAccessDetails  string
-		intervalBetweenRuns uint64
+		sources                  string
+		storeType                string
+		storeAccessDetails       string
+		intervalBetweenRuns      uint64
+		intervalBetweenBroadcast uint64
 
 		broadcastType    string
 		telegramBotToken string
@@ -52,13 +55,15 @@ func parseConfig() (config, error) {
 	)
 
 	flag.StringVar(&sources, nameSources, "https://hnrss.org/newest.atom", "rss/atom source URLs separated by a comma")
-	flag.Uint64Var(&intervalBetweenRuns, nameInterval, 60, "interval in seconds between each broadcast")
+	flag.Uint64Var(&intervalBetweenRuns, nameFeedParseInterval, 600, "interval in seconds between each feed parse")
 	flag.StringVar(&storeType, nameStore, "memory",
 		"store type to use. Valid values are: 'memory' (persistent hash map), 'postgres', 'redis'")
 	flag.StringVar(&storeAccessDetails, nameStoreAccessDetails, "redis://localhost:6379",
 		"store access URI if the type is not 'memory'")
 
 	flag.StringVar(&broadcastType, nameBroadcastType, "telegram", "broadcast type to use. Valid values are: 'telegram'")
+	flag.Uint64Var(&intervalBetweenBroadcast, nameBroadcastInterval, 10, "interval in seconds between each broadcast")
+
 	flag.StringVar(&telegramBotToken, nameTelegramBotToken, "", "telegram bot token to use with 'telegram' broadcast type")
 	flag.StringVar(&telegramChatID, nameTelegramChatID, "", "telegram chatID to use with 'telegram' broadcast type")
 
@@ -67,7 +72,8 @@ func parseConfig() (config, error) {
 	var cfg config
 
 	cfg.sources = strings.Split(sources, ",")
-	cfg.sleepDurationBetweenBroadcasts = time.Second * time.Duration(intervalBetweenRuns)
+	cfg.sleepDurationBetweenFeedParsing = time.Second * time.Duration(intervalBetweenRuns)
+	cfg.sleepDurationBetweenBroadcasts = time.Second * time.Duration(intervalBetweenBroadcast)
 
 	// Store config
 	st, err := store.ParseType(storeType)

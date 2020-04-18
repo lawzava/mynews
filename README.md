@@ -1,6 +1,8 @@
 # News
 
-RSS/Atom feed watcher, filtering by keywords and broadcasting to multiple channels
+Personalized news feed parser & broadcast
+
+Easily specify your RSS/Atom sources and broadcast preferences to get personalized news feed
 
 ## TODO:
 

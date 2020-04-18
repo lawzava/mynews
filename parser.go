@@ -27,8 +27,8 @@ func newParser(cfg config) (*parser, error) {
 		defaultSleepDuration = 10 * time.Second
 	)
 
-	if cfg.sleepDurationBetweenRuns == 0 {
-		cfg.sleepDurationBetweenRuns = defaultSleepDuration
+	if cfg.sleepDurationBetweenBroadcasts == 0 {
+		cfg.sleepDurationBetweenBroadcasts = defaultSleepDuration
 	}
 
 	stg, err := store.New(cfg.store)
@@ -84,10 +84,10 @@ func (p parser) run() error {
 				if err = p.broadcast.Send(newBroadcastMessage); err != nil {
 					return fmt.Errorf("broadcasting story: %w", err)
 				}
+
+				time.Sleep(p.config.sleepDurationBetweenBroadcasts)
 			}
 		}
-
-		time.Sleep(p.config.sleepDurationBetweenRuns)
 	}
 }
 

@@ -16,7 +16,7 @@ Sample call: `mynews -broadcastType=telegram -telegramBotToken=1ndsb3223j4234kas
   -broadcastType string
         broadcast type to use. Valid values are: 'telegram' (default "telegram")
   -interval uint
-        interval in seconds between each feed parsing run (default 60)
+        interval in seconds between each broadcast (default 60)
   -sources string
         rss/atom source URLs separated by a comma (default "https://hnrss.org/newest.atom")
   -store string

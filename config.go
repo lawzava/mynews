@@ -10,8 +10,8 @@ import (
 )
 
 type config struct {
-	sleepDurationBetweenRuns time.Duration
-	sources                  []string
+	sleepDurationBetweenBroadcasts time.Duration
+	sources                        []string
 
 	store     store.Config
 	broadcast broadcast.Config
@@ -52,7 +52,7 @@ func parseConfig() (config, error) {
 	)
 
 	flag.StringVar(&sources, nameSources, "https://hnrss.org/newest.atom", "rss/atom source URLs separated by a comma")
-	flag.Uint64Var(&intervalBetweenRuns, nameInterval, 60, "interval in seconds between each feed parsing run")
+	flag.Uint64Var(&intervalBetweenRuns, nameInterval, 60, "interval in seconds between each broadcast")
 	flag.StringVar(&storeType, nameStore, "memory",
 		"store type to use. Valid values are: 'memory' (persistent hash map), 'postgres', 'redis'")
 	flag.StringVar(&storeAccessDetails, nameStoreAccessDetails, "redis://localhost:6379",
@@ -67,7 +67,7 @@ func parseConfig() (config, error) {
 	var cfg config
 
 	cfg.sources = strings.Split(sources, ",")
-	cfg.sleepDurationBetweenRuns = time.Second * time.Duration(intervalBetweenRuns)
+	cfg.sleepDurationBetweenBroadcasts = time.Second * time.Duration(intervalBetweenRuns)
 
 	// Store config
 	st, err := store.ParseType(storeType)

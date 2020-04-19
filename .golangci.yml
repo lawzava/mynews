@@ -1,9 +1,9 @@
 linters-settings:
   dupl:
-    threshold: 100
+    threshold: 30
   funlen:
     lines: 100
-    statements: 50
+    statements: 30
   goconst:
     min-len: 2
     min-occurrences: 2
@@ -14,9 +14,6 @@ linters-settings:
       - opinionated
       - performance
       - style
-    settings:
-      hugeParam:
-        sizeThreshold: 200
   gocyclo:
     min-complexity: 20
   goimports:
@@ -26,7 +23,7 @@ linters-settings:
   govet:
     check-shadowing: true
   lll:
-    line-length: 140
+    line-length: 120
   maligned:
     suggest-new: true
   misspell:

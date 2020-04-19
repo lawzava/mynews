@@ -1,8 +1,8 @@
 package broadcast
 
-import (
-	"fmt"
-)
+type Config struct {
+	Telegram Telegram
+}
 
 type Message struct {
 	Title string
@@ -10,29 +10,6 @@ type Message struct {
 }
 
 type Broadcast interface {
+	New() (Broadcast, error)
 	Send(message Message) error
-}
-
-type Config struct {
-	Type
-
-	Telegram telegram
-}
-
-func (c Config) Validate() error {
-	if c.Type == TypeTelegram {
-		if err := c.Telegram.validate(); err != nil {
-			return fmt.Errorf("validating telegram config: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func New(cfg Config) (Broadcast, error) {
-	if cfg.Type == TypeTelegram {
-		return &cfg.Telegram, nil
-	}
-
-	return nil, nil
 }

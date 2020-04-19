@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"mynews/broadcast"
@@ -14,85 +15,121 @@ type config struct {
 	sleepDurationBetweenBroadcasts  time.Duration
 	sources                         []string
 
-	store     store.Config
-	broadcast broadcast.Config
+	ignoreStoriesBefore time.Time
+
+	store     store.Store
+	broadcast broadcast.Broadcast
 }
 
-func (cfg config) validate() error {
-	if err := cfg.store.Validate(); err != nil {
-		return fmt.Errorf("validating store config: %w", err)
-	}
-
-	if err := cfg.broadcast.Validate(); err != nil {
-		return fmt.Errorf("validating broadcast config: %w", err)
-	}
-
-	return nil
-}
-
-func parseConfig() (config, error) {
+func parseConfig() (*config, error) {
 	const (
-		nameSources            = "sources"
-		nameFeedParseInterval  = "feedParseInterval"
-		nameStore              = "store"
-		nameStoreAccessDetails = "storeAccessDetails"
-		nameBroadcastType      = "broadcastType"
-		nameBroadcastInterval  = "broadcastInterval"
-		nameTelegramBotToken   = "telegramBotToken"
-		nameTelegramChatID     = "telegramChatID"
+		nameSources           = "sources"
+		nameFeedParseInterval = "feedParseInterval"
+		nameBroadcastInterval = "broadcastInterval"
+		nameIgnoreBefore      = "ignoreBefore"
+
+		nameStore            = "store"
+		nameStoreRedisURI    = "storeRedisURI"
+		nameStorePostgresURI = "storePostgresURI"
+
+		nameBroadcastType    = "broadcastType"
+		nameTelegramBotToken = "telegramBotToken"
+		nameTelegramChatID   = "telegramChatID"
 	)
 
 	var (
-		sources                  string
-		storeType                string
-		storeAccessDetails       string
-		intervalBetweenRuns      uint64
-		intervalBetweenBroadcast uint64
+		sources string
 
-		broadcastType    string
-		telegramBotToken string
-		telegramChatID   string
+		intervalBetweenRuns      time.Duration
+		intervalBetweenBroadcast time.Duration
+
+		ignoreBefore string
+
+		storeType     string
+		broadcastType string
+
+		storeConfig     store.Config
+		broadcastConfig broadcast.Config
+
+		cfg config
+		err error
 	)
 
-	flag.StringVar(&sources, nameSources, "https://hnrss.org/newest.atom", "rss/atom source URLs separated by a comma")
-	flag.Uint64Var(&intervalBetweenRuns, nameFeedParseInterval, 600, "interval in seconds between each feed parse")
+	// Feed configuration
+	flag.StringVar(&sources, nameSources, "https://hnrss.org/newest.atom",
+		"rss/atom source URLs separated by a comma")
+	flag.DurationVar(&intervalBetweenRuns, nameFeedParseInterval, 5*time.Minute, "duration between each feed parse")      // nolint:gomnd ignore magic number in example
+	flag.DurationVar(&intervalBetweenBroadcast, nameBroadcastInterval, 10*time.Second, "duration between each broadcast") // nolint:gomnd ignore magic number in example
+
+	// Stories filtering
+	flag.StringVar(&ignoreBefore, nameIgnoreBefore, "2020-04-20T00:00:00Z",
+		"if specified, stories published before this date will be ignored, must be in RFC3339 format")
+
+	// Store configuration
 	flag.StringVar(&storeType, nameStore, "memory",
 		"store type to use. Valid values are: 'memory' (persistent hash map), 'postgres', 'redis'")
-	flag.StringVar(&storeAccessDetails, nameStoreAccessDetails, "redis://localhost:6379",
-		"store access URI if the type is not 'memory'")
+	flag.StringVar(&storeConfig.RedisDB.RedisURI, nameStoreRedisURI,
+		"redis://localhost:6379",
+		"redis access URI")
+	flag.StringVar(&storeConfig.PostgresDB.DatabaseURI, nameStorePostgresURI,
+		"postgres://user:password@localhost:6379/db",
+		"postgres access URI")
 
-	flag.StringVar(&broadcastType, nameBroadcastType, "telegram", "broadcast type to use. Valid values are: 'telegram'")
-	flag.Uint64Var(&intervalBetweenBroadcast, nameBroadcastInterval, 10, "interval in seconds between each broadcast")
+	flag.StringVar(&broadcastType, nameBroadcastType, "telegram",
+		"broadcast type to use. Valid values are: 'telegram'")
 
-	flag.StringVar(&telegramBotToken, nameTelegramBotToken, "", "telegram bot token to use with 'telegram' broadcast type")
-	flag.StringVar(&telegramChatID, nameTelegramChatID, "", "telegram chatID to use with 'telegram' broadcast type")
+	// Broadcast configuration
+	flag.StringVar(&broadcastConfig.Telegram.BotAPIToken, nameTelegramBotToken, "",
+		"telegram bot token to use with 'telegram' broadcast type")
+	flag.StringVar(&broadcastConfig.Telegram.ChatID, nameTelegramChatID, "",
+		"telegram chatID to use with 'telegram' broadcast type")
 
 	flag.Parse()
 
-	var cfg config
-
 	cfg.sources = strings.Split(sources, ",")
-	cfg.sleepDurationBetweenFeedParsing = time.Second * time.Duration(intervalBetweenRuns)
-	cfg.sleepDurationBetweenBroadcasts = time.Second * time.Duration(intervalBetweenBroadcast)
+	cfg.sleepDurationBetweenFeedParsing = intervalBetweenRuns
+	cfg.sleepDurationBetweenBroadcasts = intervalBetweenBroadcast
 
-	// Store config
-	st, err := store.ParseType(storeType)
-	if err != nil {
-		return cfg, fmt.Errorf("parsing store type: %w", err)
+	if ignoreBefore != "" {
+		cfg.ignoreStoriesBefore, err = time.Parse(time.RFC3339, ignoreBefore)
+		if err != nil {
+			return nil, fmt.Errorf("parsing ignore before: %w", err)
+		}
 	}
 
-	cfg.store.Type = st
-	cfg.store.AccessDetails = storeAccessDetails
-
-	// Broadcast config
-	bt, err := broadcast.ParseType(broadcastType)
+	cfg.store, err = parseStore(storeType, storeConfig)
 	if err != nil {
-		return cfg, fmt.Errorf("parsing broadcast type: %w", err)
+		return nil, fmt.Errorf("parsing store type: %w", err)
 	}
 
-	cfg.broadcast.Type = bt
-	cfg.broadcast.Telegram.BotAPIToken = telegramBotToken
-	cfg.broadcast.Telegram.ChatID = telegramChatID
+	cfg.broadcast, err = parseBroadcast(broadcastType, broadcastConfig)
+	if err != nil {
+		return nil, fmt.Errorf("parsing broadcast type: %w", err)
+	}
 
-	return cfg, cfg.validate()
+	return &cfg, nil
+}
+
+func parseBroadcast(name string, cfg broadcast.Config) (broadcast.Broadcast, error) {
+	switch strings.ToUpper(name) {
+	case "CONSOLE":
+		return nil, nil
+	case "TELEGRAM":
+		return cfg.Telegram.New()
+	}
+
+	return nil, errors.New("broadcast type not recognized")
+}
+
+func parseStore(name string, cfg store.Config) (store.Store, error) {
+	switch strings.ToUpper(name) {
+	case "MEMORY":
+		return cfg.MemoryDB.New()
+	case "REDIS":
+		return cfg.RedisDB.New()
+	case "POSTGRES":
+		return cfg.PostgresDB.New()
+	}
+
+	return nil, errors.New("storage type not recognized")
 }

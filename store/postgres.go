@@ -18,7 +18,7 @@ func (s PostgresDB) New() (Store, error) {
 		return nil, err
 	}
 
-	db, err := sql.Open("PostgresDB", s.DatabaseURI)
+	db, err := sql.Open("postgres", s.DatabaseURI)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to PostgresDB: %w", err)
 	}

@@ -12,7 +12,7 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-type parser struct {
+type feed struct {
 	fp *gofeed.Parser
 
 	sources   []string
@@ -22,7 +22,7 @@ type parser struct {
 	config
 }
 
-func newParser(cfg config) (*parser, error) {
+func newFeed(cfg config) (*feed, error) {
 	const (
 		defaultSleepDuration = 10 * time.Second
 	)
@@ -41,7 +41,7 @@ func newParser(cfg config) (*parser, error) {
 		return nil, fmt.Errorf("creating broadcast: %w", err)
 	}
 
-	return &parser{
+	return &feed{
 		fp:        gofeed.NewParser(),
 		sources:   cfg.sources,
 		config:    cfg,
@@ -50,18 +50,18 @@ func newParser(cfg config) (*parser, error) {
 	}, nil
 }
 
-func (p parser) run() error {
-	startedAt := time.Now().UTC().Format(time.RFC3339) // used to prevent broadcasting historical stories
+func (p feed) run() error {
+	startedAt := time.Now() // used to prevent broadcasting historical stories
 
 	for {
 		for _, source := range p.sources {
-			feed, err := p.fp.ParseURL(source)
+			sourceFeed, err := p.fp.ParseURL(source)
 			if err != nil {
-				return fmt.Errorf("parsing feed of source '%s': %w", source, err)
+				return fmt.Errorf("parsing sourceFeed of source '%s': %w", source, err)
 			}
 
-			for _, story := range feed.Items {
-				if story.Published < startedAt {
+			for _, story := range sourceFeed.Items {
+				if story.PublishedParsed.Before(startedAt) {
 					continue
 				}
 

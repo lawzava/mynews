@@ -10,7 +10,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	p, err := newParser(cfg)
+	p, err := newFeed(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}

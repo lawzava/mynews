@@ -10,24 +10,24 @@ import (
 	"strings"
 )
 
-type telegram struct {
+type Telegram struct {
 	BotAPIToken string
 	ChatID      string
 }
 
-func (t telegram) validate() error {
+func (t Telegram) New() (Broadcast, error) {
 	if err := validate.RequiredString(t.BotAPIToken, "Telegram API Token"); err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := validate.RequiredString(t.ChatID, "Chat ID"); err != nil {
-		return err
+	if err := validate.RequiredString(t.ChatID, "Telegram Chat ID"); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return t, nil
 }
 
-func (t telegram) Send(message Message) error {
+func (t Telegram) Send(message Message) error {
 	telegramMessage := struct {
 		ChatID    string `json:"chat_id"`
 		ParseMode string `json:"parse_mode"`
@@ -35,7 +35,9 @@ func (t telegram) Send(message Message) error {
 	}{
 		ChatID:    t.ChatID,
 		ParseMode: "MarkdownV2",
-		Text: fmt.Sprintf(`*%s* [%s](%s) `,
+		Text: fmt.Sprintf(`*%s* 
+
+			*Link:* [%s](%s)`,
 			escapeTelegramText(message.Title),
 			escapeTelegramText(message.Link),
 			escapeTelegramLink(message.Link),
@@ -47,7 +49,7 @@ func (t telegram) Send(message Message) error {
 		return fmt.Errorf("preparing request body: %w", err)
 	}
 
-	requestURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", t.BotAPIToken)
+	requestURL := fmt.Sprintf("https://api.Telegram.org/bot%s/sendMessage", t.BotAPIToken)
 
 	req, _ := http.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -76,7 +78,7 @@ func (t telegram) Send(message Message) error {
 	}
 
 	if !telegramResponse.OK {
-		return fmt.Errorf("unacceptable response from telegram bot API: %s", telegramResponse.Description)
+		return fmt.Errorf("unacceptable response from Telegram bot API: %s", telegramResponse.Description)
 	}
 
 	return nil

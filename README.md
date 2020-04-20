@@ -6,16 +6,22 @@ Personalized news feed parser & broadcast
 
 Easily specify your RSS/Atom sources and broadcast preferences to get personalized news feed
 
+## Installation
+
+For linux users a snap package is available through `snap install mynews`.
+
+Otherwise, pre-built binaries that are available in `releases` are recommended.
+
+To build from source make sure you have `go` installed and run `go install`.
+
 ## Usage
 
 Sample call: `mynews -broadcastType=telegram -telegramBotToken=1ndsb3223j4234kasd -telegramChatID=@lawzava_news`
 
-## TODO:
+Working example: [https://t.me/lawzava_news](https://t.me/lawzava_news)
 
-#### v1.2
-- Improve the config to use keyword filtering on titles  per source
+## Contributions and issues
 
-#### v1.3
-- Add broadcasting as JSON to custom API every n seconds or n entities
+I will be actively maintaining and improving this repository until it is stated otherwise in this section. 
 
-
+Feel free to create issues (questions) / PRs as you see fit for now. There are no hard rules.

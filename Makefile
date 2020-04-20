@@ -1,4 +1,4 @@
-build: ensure-dir build-linux compress
+build: ensure-dir build-linux build-windows build-darwin compress
 
 ensure-dir:
 	rm -rf bin
@@ -6,6 +6,12 @@ ensure-dir:
 
 build-linux:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/mynews.linux-amd64 *.go
+
+build-windows:
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o bin/mynews.windows-amd64.exe *.go
+
+build-darwin:
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -o bin/mynews.darwin-amd-64 *.go
 
 compress:
 	cd ./bin && find . -name 'mynews*' | xargs -I{} tar czf {}.tar.gz {}

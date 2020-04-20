@@ -28,20 +28,35 @@ func (t Telegram) New() (Broadcast, error) {
 }
 
 func (t Telegram) Send(message Message) error {
+	type inlineKeyboard struct {
+		Text              string `json:"text"`
+		URL               string `json:"url"`
+		SwitchInlineQuery string `json:"switch_inline_query"`
+	}
+
+	type replyMarkup struct {
+		InlineKeyboard [][]inlineKeyboard `json:"inline_keyboard"`
+	}
+
 	telegramMessage := struct {
-		ChatID    string `json:"chat_id"`
-		ParseMode string `json:"parse_mode"`
-		Text      string `json:"text"`
+		ChatID      string      `json:"chat_id"`
+		ParseMode   string      `json:"parse_mode"`
+		Text        string      `json:"text"`
+		ReplyMarkup replyMarkup `json:"reply_markup"`
 	}{
 		ChatID:    t.ChatID,
 		ParseMode: "MarkdownV2",
 		Text: fmt.Sprintf(`*%s* 
 
-			*Link:* [%s](%s)`,
+%s`, // empty line is intended
 			escapeTelegramText(message.Title),
 			escapeTelegramText(message.Link),
-			escapeTelegramLink(message.Link),
 		),
+		ReplyMarkup: replyMarkup{
+			InlineKeyboard: [][]inlineKeyboard{
+				{{Text: "Read", URL: message.Link}},
+			},
+		},
 	}
 
 	requestBody, err := json.Marshal(telegramMessage)
@@ -107,13 +122,4 @@ func escapeTelegramText(text string) string {
 	)
 
 	return replacer.Replace(text)
-}
-
-func escapeTelegramLink(link string) string {
-	replacer := strings.NewReplacer(
-		")", "\\)",
-		"\\", "\\\\",
-	)
-
-	return replacer.Replace(link)
 }

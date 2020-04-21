@@ -21,10 +21,14 @@ type fileStructure struct {
 	TelegramBotAPIToken string `json:"telegramBotAPIToken"`
 	TelegramChatID      string `json:"telegramChatID"`
 
-	Sources []struct {
-		URL                 string    `json:"url"`
-		IgnoreStoriesBefore time.Time `json:"ignoreStoriesBefore"`
-	} `json:"sources"`
+	Sources []fileStructureSource `json:"sources"`
+}
+
+type fileStructureSource struct {
+	URL                 string    `json:"url"`
+	IgnoreStoriesBefore time.Time `json:"ignoreStoriesBefore"`
+	MustIncludeAnyOf    []string  `json:"mustIncludeAnyOf"`
+	MustExcludeAnyOf    []string  `json:"mustExcludeAnyOf"`
 }
 
 func createSampleFile(filePath string) error {
@@ -39,6 +43,15 @@ func createSampleFile(filePath string) error {
 
 	defer func() { _ = file.Close() }()
 
+	sources := []fileStructureSource{
+		{
+			URL:                 "https://hnrss.org/newest.atom",
+			IgnoreStoriesBefore: time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC),
+			MustIncludeAnyOf:    []string{"linux", "golang", "musk"},
+			MustExcludeAnyOf:    []string{"windows", "trump", "apple"},
+		},
+	}
+
 	defaultFileStructure := fileStructure{
 		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),  // nolint:nomnd used for sample file
 		SleepDurationBetweenBroadcasts:  (time.Second * 10).String(), // nolint:nomnd used for sample file
@@ -48,19 +61,11 @@ func createSampleFile(filePath string) error {
 
 		BroadcastType: "stdout",
 
-		Sources: []struct {
-			URL                 string    `json:"url"`
-			IgnoreStoriesBefore time.Time `json:"ignoreStoriesBefore"`
-		}{
-			{
-				"https://hnrss.org/newest.atom",
-				time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC),
-			},
-		},
+		Sources: sources,
 	}
 
 	jsonWriter := json.NewEncoder(file)
-	jsonWriter.SetIndent("", " ")
+	jsonWriter.SetIndent("", "	")
 
 	if err = jsonWriter.Encode(defaultFileStructure); err != nil {
 		return fmt.Errorf("writing sample config: %w", err)
@@ -98,7 +103,12 @@ func (f *fileStructure) toConfig() (*Config, error) {
 	)
 
 	for _, source := range f.Sources {
-		cfg.Sources = append(cfg.Sources, Source{URL: source.URL, IgnoreStoriesBefore: source.IgnoreStoriesBefore})
+		cfg.Sources = append(cfg.Sources, &Source{
+			URL:                 source.URL,
+			IgnoreStoriesBefore: source.IgnoreStoriesBefore,
+			MustExcludeKeywords: source.MustExcludeAnyOf,
+			MustIncludeKeywords: source.MustIncludeAnyOf,
+		})
 	}
 
 	cfg.SleepDurationBetweenBroadcasts, err = time.ParseDuration(f.SleepDurationBetweenBroadcasts)

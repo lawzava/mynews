@@ -10,13 +10,15 @@ import (
 type Source struct {
 	URL                 string    `json:"url"`
 	IgnoreStoriesBefore time.Time `json:"ignoreStoriesBefore"`
+	MustIncludeKeywords []string  `json:"mustIncludeKeywords"`
+	MustExcludeKeywords []string  `json:"mustExcludeKeywords"`
 }
 
 type Config struct {
 	SleepDurationBetweenFeedParsing time.Duration
 	SleepDurationBetweenBroadcasts  time.Duration
 
-	Sources []Source
+	Sources []*Source
 
 	Store     store.Store
 	Broadcast broadcast.Broadcast

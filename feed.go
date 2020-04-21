@@ -72,9 +72,9 @@ func (f *feed) broadcastFeed(stories []*gofeed.Item) (err error) {
 			return fmt.Errorf("registering story as sent: %w", err)
 		}
 
-		newBroadcastMessage := broadcast.Message{
+		newBroadcastMessage := broadcast.Story{
 			Title: story.Title,
-			Link:  story.Link,
+			URL:   story.Link,
 		}
 
 		if err = f.config.broadcast.Send(newBroadcastMessage); err != nil {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"mynews/broadcast"
@@ -110,26 +109,24 @@ func parseConfig() (*config, error) {
 	return &cfg, nil
 }
 
+// Defaults to "STDOUT"
 func parseBroadcast(name string, cfg broadcast.Config) (broadcast.Broadcast, error) {
 	switch strings.ToUpper(name) {
-	case "CONSOLE":
-		return nil, nil
 	case "TELEGRAM":
 		return cfg.Telegram.New()
+	default:
+		return cfg.StdOut.New()
 	}
-
-	return nil, errors.New("broadcast type not recognized")
 }
 
+// Defaults to "MEMORY"
 func parseStore(name string, cfg store.Config) (store.Store, error) {
 	switch strings.ToUpper(name) {
-	case "MEMORY":
-		return cfg.MemoryDB.New()
 	case "REDIS":
 		return cfg.RedisDB.New()
 	case "POSTGRES":
 		return cfg.PostgresDB.New()
+	default:
+		return cfg.MemoryDB.New()
 	}
-
-	return nil, errors.New("storage type not recognized")
 }

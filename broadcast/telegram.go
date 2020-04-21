@@ -27,7 +27,7 @@ func (t Telegram) New() (Broadcast, error) {
 	return t, nil
 }
 
-func (t Telegram) Send(message Message) error {
+func (t Telegram) Send(message Story) error {
 	type inlineKeyboard struct {
 		Text              string `json:"text"`
 		URL               string `json:"url"`
@@ -50,11 +50,11 @@ func (t Telegram) Send(message Message) error {
 
 %s`, // empty line is intended
 			escapeTelegramText(message.Title),
-			escapeTelegramText(message.Link),
+			escapeTelegramText(message.URL),
 		),
 		ReplyMarkup: replyMarkup{
 			InlineKeyboard: [][]inlineKeyboard{
-				{{Text: "Read", URL: message.Link}},
+				{{Text: "Read", URL: message.URL}},
 			},
 		},
 	}

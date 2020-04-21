@@ -66,7 +66,7 @@ func parseConfig() (*config, error) {
 
 	// Store configuration
 	flag.StringVar(&storeType, nameStore, "memory",
-		"store type to use. Valid values are: 'memory' (persistent hash map), 'postgres', 'redis'")
+		"store type to use. Valid values are: 'memory', 'postgres', 'redis'")
 	flag.StringVar(&storeConfig.RedisDB.RedisURI, nameStoreRedisURI,
 		"redis://localhost:6379",
 		"redis access URI")
@@ -74,8 +74,8 @@ func parseConfig() (*config, error) {
 		"postgres://user:password@localhost:6379/db",
 		"postgres access URI")
 
-	flag.StringVar(&broadcastType, nameBroadcastType, "telegram",
-		"broadcast type to use. Valid values are: 'telegram'")
+	flag.StringVar(&broadcastType, nameBroadcastType, "stdout",
+		"broadcast type to use. Valid values are: 'telegram', 'stdout'")
 
 	// Broadcast configuration
 	flag.StringVar(&broadcastConfig.Telegram.BotAPIToken, nameTelegramBotToken, "",

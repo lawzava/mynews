@@ -24,3 +24,6 @@ apps:
     command: bin/mynews
     plugs:
       - network
+layout:
+  /etc/mynews.conf:
+    symlink: $SNAP_DATA/etc/mynews.conf

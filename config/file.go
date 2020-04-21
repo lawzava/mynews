@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"mynews/broadcast"
 	"mynews/store"
 	"os"
@@ -87,10 +86,10 @@ func fromFile(filePath string) (*Config, error) {
 
 	defer func() { _ = configFile.Close() }()
 
-	byteValue, _ := ioutil.ReadAll(configFile)
-
 	var file fileStructure
-	if err = json.Unmarshal(byteValue, &file); err != nil {
+
+	jsonParser := json.NewDecoder(configFile)
+	if err = jsonParser.Decode(&file); err != nil {
 		return nil, fmt.Errorf("decoding config file: %w", err)
 	}
 

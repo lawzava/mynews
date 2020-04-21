@@ -2,15 +2,22 @@ package main
 
 import (
 	"log"
+	"mynews/config"
+	"mynews/feed"
+	"os"
 )
 
 func main() {
-	cfg, err := parseConfig()
+	cfg, err := config.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err = newFeed(cfg).run(); err != nil {
+	if cfg == nil {
+		os.Exit(0)
+	}
+
+	if err = feed.New(cfg).Run(); err != nil {
 		log.Fatal(err)
 	}
 }

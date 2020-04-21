@@ -16,7 +16,9 @@ To build from source make sure you have `go` installed and run `go install`.
 
 ## Usage
 
-Sample call: `mynews -broadcastType=telegram -telegramBotToken=1ndsb3223j4234kasd -telegramChatID=@lawzava_news`
+Executing bare `mynews` will use in-memory DB and will print to stdout by default.
+
+For full list of available options, see: `mynews -help`
 
 Working example: [https://t.me/lawzava_news](https://t.me/lawzava_news)
 

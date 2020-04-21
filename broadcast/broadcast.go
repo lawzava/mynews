@@ -1,15 +1,16 @@
 package broadcast
 
 type Config struct {
+	StdOut   StdOut
 	Telegram Telegram
 }
 
-type Message struct {
-	Title string
-	Link  string
+type Story struct {
+	Title string `json:"title"`
+	URL   string `json:"url"`
 }
 
 type Broadcast interface {
 	New() (Broadcast, error)
-	Send(message Message) error
+	Send(message Story) error
 }

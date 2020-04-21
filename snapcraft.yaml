@@ -3,8 +3,6 @@ version: '1.1.8'
 summary: Personalized news feed parser & broadcast
 description: |
     Easily specify your RSS/Atom sources and broadcast preferences to get personalized news feed.
-
-    Sample call: `mynews -broadcastType=telegram -telegramBotToken=1ndsb3223j4234kasd -telegramChatID=@lawzava_news`
 confinement: strict
 base: core18
 type: app

@@ -26,4 +26,4 @@ apps:
       - network
 layout:
   /etc/mynews.conf:
-    symlink: $SNAP_DATA/etc/mynews.conf
+    bind-file: $SNAP_DATA/etc/mynews.conf

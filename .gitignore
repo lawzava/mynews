@@ -33,3 +33,6 @@ prime
 snap
 stage
 *.snap*
+
+# Local test files
+/config.json

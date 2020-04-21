@@ -22,7 +22,7 @@ func fromFlags(f *flags) (*Config, error) {
 	}
 
 	for _, url := range strings.Split(f.sources, ",") {
-		cfg.Sources = append(cfg.Sources, Source{URL: url, IgnoreStoriesBefore: ignoreBefore})
+		cfg.Sources = append(cfg.Sources, &Source{URL: url, IgnoreStoriesBefore: ignoreBefore})
 	}
 
 	cfg.SleepDurationBetweenFeedParsing = f.intervalBetweenRuns

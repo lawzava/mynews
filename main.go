@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"mynews/config"
+	"mynews/feed"
 	"os"
 )
 
@@ -16,7 +17,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if err = newFeed(cfg).run(); err != nil {
+	if err = feed.New(cfg).Run(); err != nil {
 		log.Fatal(err)
 	}
 }

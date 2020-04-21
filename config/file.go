@@ -65,7 +65,7 @@ func createSampleFile(filePath string) error {
 	}
 
 	jsonWriter := json.NewEncoder(file)
-	jsonWriter.SetIndent("", " ")
+	jsonWriter.SetIndent("", "	")
 
 	if err = jsonWriter.Encode(defaultFileStructure); err != nil {
 		return fmt.Errorf("writing sample config: %w", err)

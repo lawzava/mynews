@@ -89,13 +89,13 @@ func storyMatchesConfig(story *gofeed.Item, source *config.Source) bool {
 	}
 
 	if len(source.MustExcludeKeywords) != 0 {
-		if includesKeywords(story.Title+story.Description, source.MustExcludeKeywords) {
+		if includesKeywords(story.Title, source.MustExcludeKeywords) {
 			return false
 		}
 	}
 
 	if len(source.MustIncludeKeywords) != 0 {
-		if !includesKeywords(story.Title+story.Description, source.MustIncludeKeywords) {
+		if !includesKeywords(story.Title, source.MustIncludeKeywords) {
 			return false
 		}
 	}

@@ -26,4 +26,4 @@ apps:
       - network
 layout:
   /etc/config.json:
-    symlink-file: $SNAP_DATA/etc/mynews/config.json
+    symlink: $SNAP_DATA/etc/mynews/config.json

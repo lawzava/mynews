@@ -84,6 +84,10 @@ func (f *Feed) broadcastFeed(stories []*gofeed.Item, source *config.Source) erro
 }
 
 func storyMatchesConfig(story *gofeed.Item, source *config.Source) bool {
+	if story.PublishedParsed == nil {
+		return false
+	}
+
 	if story.PublishedParsed.Before(source.IgnoreStoriesBefore) {
 		return false
 	}

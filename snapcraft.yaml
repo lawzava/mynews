@@ -25,5 +25,5 @@ apps:
     plugs:
       - network
 layout:
-  /etc/mynews.conf:
-    bind-file: $SNAP_DATA/etc/mynews.conf
+  /etc/config.json:
+    symlink-file: $SNAP_DATA/etc/mynews/config.json

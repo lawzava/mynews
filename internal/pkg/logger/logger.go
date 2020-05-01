@@ -48,12 +48,12 @@ func (l Log) print(logLevel Level, msg ...interface{}) {
 
 	switch logLevel {
 	case Info:
-		log.SetPrefix("[INFO]")
+		log.SetPrefix("[INFO] ")
 		log.SetOutput(os.Stdout)
 	case Warn:
-		log.SetPrefix("[WARN]")
+		log.SetPrefix("[WARN] ")
 	case Error:
-		log.SetPrefix("[ERROR]")
+		log.SetPrefix("[ERROR] ")
 
 		defer os.Exit(1)
 	}

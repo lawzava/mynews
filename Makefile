@@ -5,13 +5,13 @@ ensure-dir:
 	mkdir bin
 
 build-linux:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/mynews.linux-amd64 *.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/mynews.linux-amd64 cmd/mynews/*.go
 
 build-windows:
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o bin/mynews.windows-amd64.exe *.go
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o bin/mynews.windows-amd64.exe cmd/mynews/*.go
 
 build-darwin:
-	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -o bin/mynews.darwin-amd-64 *.go
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -o bin/mynews.darwin-amd-64 cmd/mynews/*.go
 
 compress:
 	cd ./bin && find . -name 'mynews*' | xargs -I{} tar czf {}.tar.gz {}

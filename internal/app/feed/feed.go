@@ -4,8 +4,8 @@ import (
 	"crypto/md5" // nolint:gosec speed is higher concern than security in this use case
 	"encoding/hex"
 	"fmt"
-	"mynews/broadcast"
-	"mynews/config"
+	"mynews/internal/pkg/broadcast"
+	"mynews/internal/pkg/config"
 	"strings"
 	"time"
 

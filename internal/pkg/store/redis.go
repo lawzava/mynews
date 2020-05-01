@@ -2,7 +2,7 @@ package store
 
 import (
 	"fmt"
-	"mynews/validate"
+	"mynews/internal/pkg/validate"
 
 	"github.com/gomodule/redigo/redis"
 )

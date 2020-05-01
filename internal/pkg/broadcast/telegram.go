@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"mynews/validate"
+	"mynews/internal/pkg/validate"
 	"net/http"
 	"strings"
 )

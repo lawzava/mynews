@@ -3,7 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
-	"mynews/validate"
+	"mynews/internal/pkg/validate"
 
 	_ "github.com/lib/pq" // PostgresDB driver
 )

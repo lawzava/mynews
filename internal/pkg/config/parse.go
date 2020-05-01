@@ -1,8 +1,8 @@
 package config
 
 import (
-	"mynews/broadcast"
-	"mynews/store"
+	"mynews/internal/pkg/broadcast"
+	"mynews/internal/pkg/store"
 	"strings"
 )
 

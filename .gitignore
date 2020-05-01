@@ -28,11 +28,11 @@ removeme*
 *.swp # vim
 
 # Snapcraft Files
-parts
-prime
-snap
-stage
+/parts
+/prime
+/stage
+/snap
 *.snap*
 
 # Local test files
-/config.json
+/example.json

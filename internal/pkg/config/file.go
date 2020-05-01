@@ -3,8 +3,8 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"mynews/broadcast"
-	"mynews/store"
+	"mynews/internal/pkg/broadcast"
+	"mynews/internal/pkg/store"
 	"os"
 	"time"
 )
@@ -31,52 +31,10 @@ type fileStructureSource struct {
 	MustExcludeAnyOf    []string  `json:"mustExcludeAnyOf"`
 }
 
-func createSampleFile(filePath string) error {
-	if _, err := os.Stat(filePath); err == nil {
-		return fmt.Errorf("file '%s' already exists", filePath)
-	}
-
-	file, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("initializing config file: %w", err)
-	}
-
-	defer func() { _ = file.Close() }()
-
-	sources := []fileStructureSource{
-		{
-			URL:                 "https://hnrss.org/newest.atom",
-			IgnoreStoriesBefore: time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC),
-			MustIncludeAnyOf:    []string{"linux", "golang", "musk"},
-			MustExcludeAnyOf:    []string{"windows", "trump", "apple"},
-		},
-	}
-
-	defaultFileStructure := fileStructure{
-		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),  // nolint:nomnd used for sample file
-		SleepDurationBetweenBroadcasts:  (time.Second * 10).String(), // nolint:nomnd used for sample file
-
-		StorageType: "redis",
-		RedisURI:    "redis://localhost",
-
-		BroadcastType: "stdout",
-
-		Sources: sources,
-	}
-
-	jsonWriter := json.NewEncoder(file)
-	jsonWriter.SetIndent("", "	")
-
-	if err = jsonWriter.Encode(defaultFileStructure); err != nil {
-		return fmt.Errorf("writing sample config: %w", err)
-	}
-
-	return nil
-}
-
 func fromFile(filePath string) (*Config, error) {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("file '%s' not found", filePath)
+		fmt.Printf(`File '%s' does not exist\n`, filePath)
+		return nil, nil
 	}
 
 	configFile, err := os.Open(filePath)
@@ -143,4 +101,46 @@ func (f *fileStructure) toConfig() (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+func createSampleFile(filePath string) error {
+	if _, err := os.Stat(filePath); err != nil && os.IsExist(err) {
+		return nil
+	}
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("initializing config file: %w", err)
+	}
+
+	defer func() { _ = file.Close() }()
+
+	sources := []fileStructureSource{
+		{
+			URL:                 "https://hnrss.org/newest.atom",
+			IgnoreStoriesBefore: time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC),
+			MustIncludeAnyOf:    []string{"linux", "golang", "musk"},
+			MustExcludeAnyOf:    []string{"windows", "trump", "apple"},
+		},
+	}
+
+	defaultFileStructure := fileStructure{
+		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),  // nolint:nomnd used for sample file
+		SleepDurationBetweenBroadcasts:  (time.Second * 10).String(), // nolint:nomnd used for sample file
+
+		StorageType:   "memory",
+		BroadcastType: "stdout",
+		Sources:       sources,
+	}
+
+	jsonWriter := json.NewEncoder(file)
+	jsonWriter.SetIndent("", "	")
+
+	if err = jsonWriter.Encode(defaultFileStructure); err != nil {
+		return fmt.Errorf("writing sample config: %w", err)
+	}
+
+	fmt.Printf(`Created a sample config file at '%s'\n`, filePath)
+
+	return nil
 }

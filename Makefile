@@ -18,10 +18,13 @@ compress:
 
 snap-clean:
 	rm -f mynews_*_amd64.snap*
-	snapcraft clean
+	snapcraft clean mynews
 
 snap-build:
 	snapcraft
+
+snap-install:
+	snap install mynews*.snap --dangerous
 
 snap-publish:
 	snapcraft push --release=edge mynews_*_amd64.snap

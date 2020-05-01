@@ -2,8 +2,8 @@ package main
 
 import (
 	"log"
-	"mynews/config"
-	"mynews/feed"
+	"mynews/internal/app/feed"
+	"mynews/internal/pkg/config"
 	"os"
 )
 

@@ -30,7 +30,7 @@ type Config struct {
 func New(log *logger.Log) (*Config, error) {
 	const (
 		configFilePathEnvironmentVariable = "MYNEWS_CONFIG_FILE"
-		configFileDefaultLocation         = "~/.config/mynews/config.json"
+		configFileDefaultLocation         = "$HOME/.config/mynews/config.json"
 	)
 
 	var (

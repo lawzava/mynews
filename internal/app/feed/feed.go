@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/config"
+	"mynews/internal/pkg/logger"
 	"strings"
 	"time"
 
@@ -30,16 +31,17 @@ func New(cfg *config.Config) *Feed {
 	}
 }
 
-func (f *Feed) Run() error {
+func (f *Feed) Run(log *logger.Log) error {
 	for {
 		for _, source := range f.config.Sources {
 			sourceFeed, err := f.fp.ParseURL(source.URL)
 			if err != nil {
-				return fmt.Errorf("parsing sourceFeed of source '%s': %w", source, err)
+				log.WarnErr(fmt.Sprintf("parsing sourceFeed of source '%s'", source), err)
+				continue
 			}
 
 			if err = f.broadcastFeed(sourceFeed.Items, source); err != nil {
-				return fmt.Errorf("processing feed of source '%s': %w", source, err)
+				log.WarnErr(fmt.Sprintf("broadcasting items for source '%s'", source), err)
 			}
 		}
 

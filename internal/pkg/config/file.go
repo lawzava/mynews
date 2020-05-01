@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"mynews/internal/pkg/broadcast"
+	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/store"
 	"os"
 	"time"
@@ -31,9 +32,9 @@ type fileStructureSource struct {
 	MustExcludeAnyOf    []string  `json:"mustExcludeAnyOf"`
 }
 
-func fromFile(filePath string) (*Config, error) {
+func fromFile(filePath string, log *logger.Log) (*Config, error) {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		fmt.Printf(`File '%s' does not exist\n`, filePath)
+		log.Warn(fmt.Sprintf("File '%s' does not exist", filePath))
 		return nil, nil
 	}
 
@@ -139,8 +140,6 @@ func createSampleFile(filePath string) error {
 	if err = jsonWriter.Encode(defaultFileStructure); err != nil {
 		return fmt.Errorf("writing sample config: %w", err)
 	}
-
-	fmt.Printf(`Created a sample config file at '%s'\n`, filePath)
 
 	return nil
 }

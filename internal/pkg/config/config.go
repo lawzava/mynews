@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"mynews/internal/pkg/broadcast"
+	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/store"
 	"os"
 	"time"
@@ -26,7 +27,7 @@ type Config struct {
 	Broadcast broadcast.Broadcast
 }
 
-func New() (*Config, error) {
+func New(log *logger.Log) (*Config, error) {
 	const (
 		configFilePathEnvironmentVariable = "MYNEWS_CONFIG_FILE"
 		configFileDefaultLocation         = "~/.config/mynews/config.json"
@@ -55,8 +56,10 @@ func New() (*Config, error) {
 			return nil, fmt.Errorf("creating new sample config: %w", err)
 		}
 
+		log.Info(fmt.Sprintf(`Created a sample config file at '%s'`, fileLocation))
+
 		return nil, nil
 	}
 
-	return fromFile(fileLocation)
+	return fromFile(fileLocation, log)
 }

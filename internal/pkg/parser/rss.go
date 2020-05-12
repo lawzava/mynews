@@ -23,7 +23,7 @@ func parseRSS(body []byte) (items []Item, err error) {
 	var r rssFeed
 
 	if err = xml.Unmarshal(body, &r); err != nil {
-		return nil, fmt.Errorf("failed to read RSS feed: %w", err)
+		return nil, errInvalidFeedType
 	}
 
 	for _, feedItem := range r.Items {

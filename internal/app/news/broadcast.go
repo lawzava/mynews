@@ -1,4 +1,4 @@
-package feed
+package news
 
 import (
 	"crypto/md5" // nolint:gosec speed is higher concern than security in this use case
@@ -6,51 +6,12 @@ import (
 	"fmt"
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/config"
-	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/parser"
 	"strings"
 	"time"
-
-	"github.com/mmcdole/gofeed"
 )
 
-type Feed struct {
-	fp     *gofeed.Parser
-	config *config.Config
-}
-
-func New(cfg *config.Config) *Feed {
-	const defaultSleepDuration = 10 * time.Second
-
-	if cfg.SleepDurationBetweenBroadcasts == 0 {
-		cfg.SleepDurationBetweenBroadcasts = defaultSleepDuration
-	}
-
-	return &Feed{
-		fp:     gofeed.NewParser(),
-		config: cfg,
-	}
-}
-
-func (f *Feed) Run(log *logger.Log) error {
-	for {
-		for _, source := range f.config.Sources {
-			items, err := parser.ParseURL(source.URL)
-			if err != nil {
-				log.WarnErr(fmt.Sprintf("parsing feed of source '%s'", source), err)
-				continue
-			}
-
-			if err = f.broadcastFeed(items, source); err != nil {
-				log.WarnErr(fmt.Sprintf("broadcasting items for source '%s'", source), err)
-			}
-		}
-
-		time.Sleep(f.config.SleepDurationBetweenFeedParsing)
-	}
-}
-
-func (f *Feed) broadcastFeed(stories []parser.Item, source *config.Source) error {
+func (n News) broadcastFeed(stories []parser.Item, source *config.Source) error {
 	for _, story := range stories {
 		if !storyMatchesConfig(story, source) {
 			continue
@@ -58,7 +19,7 @@ func (f *Feed) broadcastFeed(stories []parser.Item, source *config.Source) error
 
 		storyID := buildStoryID(story.PublishedAt, story.Link)
 
-		storyWasAlreadySent, err := f.config.Store.KeyExists(storyID)
+		storyWasAlreadySent, err := n.config.Store.KeyExists(storyID)
 		if err != nil {
 			return fmt.Errorf("checking if story was already sent: %w", err)
 		}
@@ -67,7 +28,7 @@ func (f *Feed) broadcastFeed(stories []parser.Item, source *config.Source) error
 			continue
 		}
 
-		if err = f.config.Store.PutKey(storyID); err != nil {
+		if err = n.config.Store.PutKey(storyID); err != nil {
 			return fmt.Errorf("registering story as sent: %w", err)
 		}
 
@@ -76,11 +37,11 @@ func (f *Feed) broadcastFeed(stories []parser.Item, source *config.Source) error
 			URL:   story.Link,
 		}
 
-		if err = f.config.Broadcast.Send(newBroadcastMessage); err != nil {
+		if err = n.config.Broadcast.Send(newBroadcastMessage); err != nil {
 			return fmt.Errorf("broadcasting story: %w", err)
 		}
 
-		time.Sleep(f.config.SleepDurationBetweenBroadcasts)
+		time.Sleep(n.config.SleepDurationBetweenBroadcasts)
 	}
 
 	return nil

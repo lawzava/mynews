@@ -35,4 +35,4 @@ removeme*
 *.snap*
 
 # Local test files
-/example.json
+/config.json

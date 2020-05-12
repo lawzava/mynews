@@ -15,8 +15,13 @@ type Item struct {
 func Parse(url string) ([]Item, error) {
 	body, err := fromURL(url)
 	if err != nil {
-		return nil, fmt.Errorf("parsing feed '%s' from url: %w", url, err)
+		return nil, fmt.Errorf("parsing from url: %w", err)
 	}
 
-	return nil, nil
+	items, err := parseRSS(body)
+	if err != nil {
+		return nil, fmt.Errorf("parsing RSS feed: %w", err)
+	}
+
+	return items, nil
 }

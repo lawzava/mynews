@@ -3,6 +3,7 @@ package parser
 import (
 	"encoding/xml"
 	"fmt"
+	"mynews/internal/pkg/timeparser"
 )
 
 type rssFeed struct {
@@ -25,8 +26,15 @@ func parseRSS(body []byte) (items []Item, err error) {
 		return nil, fmt.Errorf("failed to read RSS feed: %w", err)
 	}
 
-	for _, item := range r.Items {
-		items = append(items, Item{Title: item.Title, Link: item.Link, PublishedAt: item.PubDate})
+	for _, feedItem := range r.Items {
+		item := Item{Title: feedItem.Title, Link: feedItem.Link, PublishedAt: feedItem.PubDate}
+
+		item.PublishedAtParsed, err = timeparser.ParseUTC(feedItem.PubDate)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse feed item publish date: %w", err)
+		}
+
+		items = append(items, item)
 	}
 
 	return items, nil

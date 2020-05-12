@@ -7,6 +7,7 @@ import (
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/config"
 	"mynews/internal/pkg/logger"
+	"mynews/internal/pkg/parser"
 	"strings"
 	"time"
 
@@ -34,13 +35,13 @@ func New(cfg *config.Config) *Feed {
 func (f *Feed) Run(log *logger.Log) error {
 	for {
 		for _, source := range f.config.Sources {
-			sourceFeed, err := f.fp.ParseURL(source.URL)
+			items, err := parser.ParseURL(source.URL)
 			if err != nil {
-				log.WarnErr(fmt.Sprintf("parsing sourceFeed of source '%s'", source), err)
+				log.WarnErr(fmt.Sprintf("parsing feed of source '%s'", source), err)
 				continue
 			}
 
-			if err = f.broadcastFeed(sourceFeed.Items, source); err != nil {
+			if err = f.broadcastFeed(items, source); err != nil {
 				log.WarnErr(fmt.Sprintf("broadcasting items for source '%s'", source), err)
 			}
 		}
@@ -49,13 +50,13 @@ func (f *Feed) Run(log *logger.Log) error {
 	}
 }
 
-func (f *Feed) broadcastFeed(stories []*gofeed.Item, source *config.Source) error {
+func (f *Feed) broadcastFeed(stories []parser.Item, source *config.Source) error {
 	for _, story := range stories {
 		if !storyMatchesConfig(story, source) {
 			continue
 		}
 
-		storyID := buildStoryID(story.Published, story.Link)
+		storyID := buildStoryID(story.PublishedAt, story.Link)
 
 		storyWasAlreadySent, err := f.config.Store.KeyExists(storyID)
 		if err != nil {
@@ -85,12 +86,12 @@ func (f *Feed) broadcastFeed(stories []*gofeed.Item, source *config.Source) erro
 	return nil
 }
 
-func storyMatchesConfig(story *gofeed.Item, source *config.Source) bool {
-	if story.PublishedParsed == nil {
+func storyMatchesConfig(story parser.Item, source *config.Source) bool {
+	if story.PublishedAtParsed.IsZero() {
 		return false
 	}
 
-	if story.PublishedParsed.Before(source.IgnoreStoriesBefore) {
+	if story.PublishedAtParsed.Before(source.IgnoreStoriesBefore) {
 		return false
 	}
 

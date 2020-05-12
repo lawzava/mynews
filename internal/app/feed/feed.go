@@ -55,7 +55,7 @@ func (f *Feed) broadcastFeed(stories []*gofeed.Item, source *config.Source) erro
 			continue
 		}
 
-		storyID := buildStoryIDFromURL(story.Link)
+		storyID := buildStoryID(story.Published, story.Link)
 
 		storyWasAlreadySent, err := f.config.Store.KeyExists(storyID)
 		if err != nil {
@@ -125,10 +125,10 @@ func includesKeywords(target string, keywords []string) bool {
 	return false
 }
 
-func buildStoryIDFromURL(link string) string {
+func buildStoryID(published, link string) string {
 	h := md5.New() // nolint:gosec speed is higher concern than security in this use case
 
-	_, _ = h.Write([]byte(link))
+	_, _ = h.Write([]byte(published+link))
 
 	return hex.EncodeToString(h.Sum(nil))
 }

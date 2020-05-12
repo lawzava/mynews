@@ -1,7 +1,7 @@
 package main
 
 import (
-	"mynews/internal/app/feed"
+	"mynews/internal/app/news"
 	"mynews/internal/pkg/config"
 	"mynews/internal/pkg/logger"
 	"os"
@@ -23,7 +23,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if err = feed.New(cfg).Run(log); err != nil {
+	if err = news.New(cfg).Run(log); err != nil {
 		log.Fatal("failed running feed", err)
 	}
 }

@@ -128,7 +128,7 @@ func includesKeywords(target string, keywords []string) bool {
 func buildStoryID(published, link string) string {
 	h := md5.New() // nolint:gosec speed is higher concern than security in this use case
 
-	_, _ = h.Write([]byte(published+link))
+	_, _ = h.Write([]byte(published + link))
 
 	return hex.EncodeToString(h.Sum(nil))
 }

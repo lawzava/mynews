@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/logger"
-	"mynews/internal/pkg/store"
+	"mynews/internal/pkg/storage"
 	"os"
 	"time"
 )
@@ -13,10 +13,6 @@ import (
 type fileStructure struct {
 	SleepDurationBetweenFeedParsing string `json:"sleepDurationBetweenFeedParsing"`
 	SleepDurationBetweenBroadcasts  string `json:"sleepDurationBetweenBroadcasts"`
-
-	StorageType string `json:"storageType"`
-	RedisURI    string `json:"redisURI"`
-	PostgresURI string `json:"postgresURI"`
 
 	BroadcastType       string `json:"broadcastType"`
 	TelegramBotAPIToken string `json:"telegramBotAPIToken"`
@@ -80,25 +76,15 @@ func (f *fileStructure) toConfig() (*Config, error) {
 		return nil, fmt.Errorf("invalid feed parsing sleep duration format: %w", err)
 	}
 
-	var (
-		storeConfig     store.Config
-		broadcastConfig broadcast.Config
-	)
-
-	storeConfig.RedisDB.RedisURI = f.RedisURI
-	storeConfig.PostgresDB.DatabaseURI = f.PostgresURI
-
+	var broadcastConfig broadcast.Config
 	broadcastConfig.Telegram.BotAPIToken = f.TelegramBotAPIToken
 	broadcastConfig.Telegram.ChatID = f.TelegramChatID
 
-	cfg.Store, err = parseStore(f.StorageType, storeConfig)
-	if err != nil {
-		return nil, fmt.Errorf("parsing store: %w", err)
-	}
+	cfg.Store = storage.New()
 
 	cfg.Broadcast, err = parseBroadcast(f.BroadcastType, broadcastConfig)
 	if err != nil {
-		return nil, fmt.Errorf("parsing store: %w", err)
+		return nil, fmt.Errorf("parsing storage: %w", err)
 	}
 
 	return &cfg, nil
@@ -129,7 +115,6 @@ func createSampleFile(filePath string) error {
 		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),  // nolint:nomnd used for sample file
 		SleepDurationBetweenBroadcasts:  (time.Second * 10).String(), // nolint:nomnd used for sample file
 
-		StorageType:   "memory",
 		BroadcastType: "stdout",
 		Sources:       sources,
 	}

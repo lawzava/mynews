@@ -9,6 +9,8 @@ import (
 
 func (n News) Run(log *logger.Log) error {
 	for {
+		parsingStarted := time.Now()
+
 		for _, source := range n.config.Sources {
 			items, err := parser.ParseURL(source.URL)
 			if err != nil {
@@ -21,6 +23,7 @@ func (n News) Run(log *logger.Log) error {
 			}
 		}
 
+		n.config.Store.CleanupBefore(parsingStarted)
 		time.Sleep(n.config.SleepDurationBetweenFeedParsing)
 	}
 }

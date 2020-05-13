@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/logger"
-	"mynews/internal/pkg/store"
+	"mynews/internal/pkg/storage"
 	"os"
 	"time"
 )
@@ -23,7 +23,7 @@ type Config struct {
 
 	Sources []*Source
 
-	Store     store.Store
+	Store     storage.Storage
 	Broadcast broadcast.Broadcast
 }
 

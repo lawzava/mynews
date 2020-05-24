@@ -26,6 +26,7 @@ type fileStructureSource struct {
 	IgnoreStoriesBefore string   `json:"ignoreStoriesBefore"`
 	MustIncludeAnyOf    []string `json:"mustIncludeAnyOf"`
 	MustExcludeAnyOf    []string `json:"mustExcludeAnyOf"`
+	StatusPage          bool     `json:"statusPage"`
 }
 
 func fromFile(filePath string, log *logger.Log) (*Config, error) {

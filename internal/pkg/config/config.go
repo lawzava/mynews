@@ -15,6 +15,7 @@ type Source struct {
 	IgnoreStoriesBefore time.Time
 	MustIncludeKeywords []string
 	MustExcludeKeywords []string
+	StatusPage          bool // used when links in feed does not change but timestamp changes
 }
 
 type Config struct {

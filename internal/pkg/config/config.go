@@ -11,10 +11,10 @@ import (
 )
 
 type Source struct {
-	URL                 string    `json:"url"`
-	IgnoreStoriesBefore time.Time `json:"ignoreStoriesBefore"`
-	MustIncludeKeywords []string  `json:"mustIncludeKeywords"`
-	MustExcludeKeywords []string  `json:"mustExcludeKeywords"`
+	URL                 string
+	IgnoreStoriesBefore time.Time
+	MustIncludeKeywords []string
+	MustExcludeKeywords []string
 }
 
 type Config struct {

@@ -22,10 +22,10 @@ type fileStructure struct {
 }
 
 type fileStructureSource struct {
-	URL                 string    `json:"url"`
-	IgnoreStoriesBefore time.Time `json:"ignoreStoriesBefore"`
-	MustIncludeAnyOf    []string  `json:"mustIncludeAnyOf"`
-	MustExcludeAnyOf    []string  `json:"mustExcludeAnyOf"`
+	URL                 string   `json:"url"`
+	IgnoreStoriesBefore string   `json:"ignoreStoriesBefore"`
+	MustIncludeAnyOf    []string `json:"mustIncludeAnyOf"`
+	MustExcludeAnyOf    []string `json:"mustExcludeAnyOf"`
 }
 
 func fromFile(filePath string, log *logger.Log) (*Config, error) {
@@ -58,12 +58,23 @@ func (f *fileStructure) toConfig() (*Config, error) {
 	)
 
 	for _, source := range f.Sources {
-		cfg.Sources = append(cfg.Sources, &Source{
+		s := Source{
 			URL:                 source.URL,
-			IgnoreStoriesBefore: source.IgnoreStoriesBefore,
 			MustExcludeKeywords: source.MustExcludeAnyOf,
 			MustIncludeKeywords: source.MustIncludeAnyOf,
-		})
+		}
+
+		s.IgnoreStoriesBefore, err = time.Parse(time.RFC3339, source.IgnoreStoriesBefore)
+		if err != nil {
+			var dur time.Duration
+
+			dur, err = time.ParseDuration(source.IgnoreStoriesBefore)
+			if err == nil {
+				s.IgnoreStoriesBefore = time.Now().UTC().Add(-dur)
+			}
+		}
+
+		cfg.Sources = append(cfg.Sources, &s)
 	}
 
 	cfg.SleepDurationBetweenBroadcasts, err = time.ParseDuration(f.SleepDurationBetweenBroadcasts)
@@ -105,9 +116,13 @@ func createSampleFile(filePath string) error {
 	sources := []fileStructureSource{
 		{
 			URL:                 "https://hnrss.org/newest.atom",
-			IgnoreStoriesBefore: time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC),
+			IgnoreStoriesBefore: time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC).String(),
 			MustIncludeAnyOf:    []string{"linux", "golang", "musk"},
 			MustExcludeAnyOf:    []string{"windows", "trump", "apple"},
+		},
+		{
+			URL:                 "https://hnrss.org/newest.atom",
+			IgnoreStoriesBefore: time.Hour.String(),
 		},
 	}
 

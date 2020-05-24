@@ -128,8 +128,8 @@ func createSampleFile(filePath string) error {
 	}
 
 	defaultFileStructure := fileStructure{
-		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),  // nolint:nomnd used for sample file
-		SleepDurationBetweenBroadcasts:  (time.Second * 10).String(), // nolint:nomnd used for sample file
+		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),  // nolint:nomnd // used for sample file
+		SleepDurationBetweenBroadcasts:  (time.Second * 10).String(), // nolint:nomnd // used for sample file
 
 		BroadcastType: "stdout",
 		Sources:       sources,

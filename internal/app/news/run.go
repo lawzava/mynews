@@ -14,12 +14,12 @@ func (n News) Run(log *logger.Log) error {
 		for _, source := range n.config.Sources {
 			items, err := parser.ParseURL(source.URL)
 			if err != nil {
-				log.WarnErr(fmt.Sprintf("parsing feed of source '%s'", source), err)
+				log.WarnErr(fmt.Sprintf("parsing feed of source '%s'", source.URL), err)
 				continue
 			}
 
 			if err = n.broadcastFeed(items, source); err != nil {
-				log.WarnErr(fmt.Sprintf("broadcasting items for source '%s'", source), err)
+				log.WarnErr(fmt.Sprintf("broadcasting items for source '%s'", source.URL), err)
 			}
 		}
 

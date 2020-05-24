@@ -1,7 +1,7 @@
 package news
 
 import (
-	"crypto/md5" // nolint:gosec speed is higher concern than security in this use case
+	"crypto/md5" // nolint:gosec // speed is higher concern than security in this use case
 	"encoding/hex"
 	"fmt"
 	"mynews/internal/pkg/broadcast"
@@ -88,7 +88,7 @@ func includesKeywords(target string, keywords []string) bool {
 }
 
 func buildStoryID(published, link string, statusPage bool) string {
-	h := md5.New() // nolint:gosec speed is higher concern than security in this use case
+	h := md5.New() // nolint:gosec // speed is higher concern than security in this use case
 
 	if statusPage {
 		_, _ = h.Write([]byte(published + link))

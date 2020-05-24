@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Defaults to "STDOUT"
+// Defaults to "STDOUT".
 func parseBroadcast(name string, cfg broadcast.Config) (broadcast.Broadcast, error) {
 	switch strings.ToUpper(name) {
 	case "TELEGRAM":

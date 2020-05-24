@@ -75,6 +75,12 @@ linters:
     - rowserrcheck
     - gomnd
     - godox
+    - goerr113
+    - gomodguard
+    - godot
+    - testpackage
+    - nestif
+    - nolintlint
 
 run:
   timeout: 5m

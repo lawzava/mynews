@@ -2,15 +2,19 @@ package timeparser
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
+)
+
+var (
+	errEmptyInputString  = errors.New("input string is empty")
+	errFailedtoParseTime = errors.New("failed to parse time")
 )
 
 func ParseUTC(ts string) (t time.Time, err error) {
 	d := strings.TrimSpace(ts)
 	if d == "" {
-		return t, fmt.Errorf("input string is empty")
+		return t, errEmptyInputString
 	}
 
 	defer func() { t = t.UTC() }()
@@ -39,5 +43,5 @@ func ParseUTC(ts string) (t time.Time, err error) {
 		}
 	}
 
-	return t, errors.New("failed to parse time")
+	return t, errFailedtoParseTime
 }

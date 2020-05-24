@@ -3,6 +3,7 @@ package broadcast
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"mynews/internal/pkg/validate"
@@ -26,6 +27,10 @@ func (t Telegram) New() (Broadcast, error) {
 
 	return t, nil
 }
+
+var (
+	errUnacceptableResponseFromTelegram = errors.New("unacceptable response from Telegram bot API")
+)
 
 func (t Telegram) Send(message Story) error {
 	type inlineKeyboard struct {
@@ -93,7 +98,7 @@ func (t Telegram) Send(message Story) error {
 	}
 
 	if !telegramResponse.OK {
-		return fmt.Errorf("unacceptable response from Telegram bot API: %s", telegramResponse.Description)
+		return fmt.Errorf("%w: %s", errUnacceptableResponseFromTelegram, telegramResponse.Description)
 	}
 
 	return nil

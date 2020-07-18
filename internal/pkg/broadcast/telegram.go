@@ -28,9 +28,7 @@ func (t Telegram) New() (Broadcast, error) {
 	return t, nil
 }
 
-var (
-	errUnacceptableResponseFromTelegram = errors.New("unacceptable response from Telegram bot API")
-)
+var errUnacceptableResponseFromTelegram = errors.New("unacceptable response from Telegram bot API")
 
 func (t Telegram) Send(message Story) error {
 	type inlineKeyboard struct {

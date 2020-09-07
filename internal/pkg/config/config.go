@@ -26,41 +26,58 @@ type Config struct {
 
 	Store     storage.Storage
 	Broadcast broadcast.Broadcast
+
+	StorageFilePath string
 }
 
 func New(log *logger.Log) (*Config, error) {
 	const (
 		configFilePathEnvironmentVariable = "MYNEWS_CONFIG_FILE"
 		configFileDefaultLocation         = "$HOME/.config/mynews/config.json"
+
+		storageFilePathEnvironmentVariable = "MYNEWS_STORAGE_FILE"
+		storageFileDefaultLocation         = "$HOME/.config/mynews/data.json"
 	)
 
 	var (
-		fileLocation string
-		createSample bool
+		configFileLocation, storageFileLocation string
+		createSample                            bool
 	)
 
-	flag.StringVar(&fileLocation, "config", "",
+	flag.StringVar(&configFileLocation, "config", "",
 		fmt.Sprintf("Path to config file. Defaults to '%s'.", configFileDefaultLocation))
+
+	flag.StringVar(&storageFileLocation, "storage", "",
+		fmt.Sprintf("Path to storage file. Defaults to '%s'.", storageFileDefaultLocation))
+
 	flag.BoolVar(&createSample, "create", false, `Creates a sample config file.`)
 	flag.Parse()
 
-	if fileLocation == "" {
-		fileLocation = configFileDefaultLocation
+	if configFileLocation == "" {
+		configFileLocation = configFileDefaultLocation
 
 		if e := os.Getenv(configFilePathEnvironmentVariable); e != "" {
-			fileLocation = e
+			configFileLocation = e
+		}
+	}
+
+	if storageFileLocation == "" {
+		storageFileLocation = configFileDefaultLocation
+
+		if e := os.Getenv(storageFilePathEnvironmentVariable); e != "" {
+			storageFileLocation = e
 		}
 	}
 
 	if createSample {
-		if err := createSampleFile(fileLocation); err != nil {
+		if err := createSampleFile(configFileLocation); err != nil {
 			return nil, fmt.Errorf("creating new sample config: %w", err)
 		}
 
-		log.Info(fmt.Sprintf(`Created a sample config file at '%s'`, fileLocation))
+		log.Info(fmt.Sprintf(`Created a sample config file at '%s'`, configFileLocation))
 
 		return nil, nil
 	}
 
-	return fromFile(fileLocation, log)
+	return fromFile(configFileLocation, log)
 }

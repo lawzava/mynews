@@ -19,6 +19,8 @@ type fileStructure struct {
 	TelegramChatID      string `json:"telegramChatID"`
 
 	Sources []fileStructureSource `json:"sources"`
+
+	StorageFilePath string `json:"storageFilePath"`
 }
 
 type fileStructureSource struct {
@@ -99,6 +101,8 @@ func (f *fileStructure) toConfig() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing storage: %w", err)
 	}
+
+	cfg.StorageFilePath = f.StorageFilePath
 
 	return &cfg, nil
 }

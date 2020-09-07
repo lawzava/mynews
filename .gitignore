@@ -36,3 +36,4 @@ removeme*
 
 # Local test files
 /config.json
+/data.json

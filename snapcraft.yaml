@@ -2,7 +2,7 @@ name: mynews
 version: '1.3.9'
 summary: Personalized news feed parser & broadcast
 description: Easily specify your RSS/Atom sources and broadcast preferences to get personalized news feed.
-base: core18
+base: core20
 parts:
   mynews:
     plugin: go
@@ -11,12 +11,14 @@ apps:
   mynews:
     environment:
       MYNEWS_CONFIG_FILE: $SNAP_COMMON/config.json
+      MYNEWS_STORAGE_FILE: $SNAP_COMMON/data.json
     command: bin/mynews
     plugs:
       - network
   mynewsd:
     environment:
       MYNEWS_CONFIG_FILE: $SNAP_COMMON/config.json
+      MYNEWS_STORAGE_FILE: $SNAP_COMMON/data.json
     command: bin/mynews
     daemon: simple
     plugs:

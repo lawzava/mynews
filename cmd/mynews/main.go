@@ -10,8 +10,6 @@ import (
 )
 
 func main() {
-	handleInterrupt()
-
 	log := logger.New(logger.Info)
 
 	cfg, err := config.New(log)
@@ -23,17 +21,28 @@ func main() {
 		os.Exit(0)
 	}
 
+	handleInterrupt(cfg, log)
+
+	if err = cfg.Store.RecoverFromFile(cfg.StorageFilePath, log); err != nil {
+		log.Fatal("recovering data from file", err)
+	}
+
 	if err = news.New(cfg).Run(log); err != nil {
 		log.Fatal("failed running feed", err)
 	}
 }
 
-func handleInterrupt() {
+func handleInterrupt(cfg *config.Config, log *logger.Log) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		<-c
+
+		if err := cfg.Store.DumpToFile(cfg.StorageFilePath); err != nil {
+			log.Fatal("failed to dump storage file", err)
+		}
+
 		os.Exit(0)
 	}()
 }

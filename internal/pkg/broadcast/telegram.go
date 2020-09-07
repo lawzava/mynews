@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -69,7 +70,7 @@ func (t Telegram) Send(message Story) error {
 
 	requestURL := fmt.Sprintf("https://api.Telegram.org/bot%s/sendMessage", t.BotAPIToken)
 
-	req, _ := http.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}

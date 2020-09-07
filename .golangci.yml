@@ -81,6 +81,15 @@ linters:
     - testpackage
     - nestif
     - nolintlint
+    - asciicheck
+    - exhaustive
+    - exportloopref
+    - gci
+    - gofumpt
+    - goheader
+    - nlreturn
+    - noctx
+    - sqlclosecheck
 
 run:
   timeout: 5m

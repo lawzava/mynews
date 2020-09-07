@@ -1,7 +1,9 @@
 package news
 
 import (
-	"crypto/md5" // nolint:gosec // speed is higher concern than security in this use case
+
+	// nolint:gosec // md5 used for key generation, nothing sensitive
+	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"mynews/internal/pkg/broadcast"

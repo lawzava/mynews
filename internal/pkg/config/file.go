@@ -32,6 +32,7 @@ type fileStructureSource struct {
 func fromFile(filePath string, log *logger.Log) (*Config, error) {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		log.Warn(fmt.Sprintf("File '%s' does not exist", filePath))
+
 		return nil, nil
 	}
 
@@ -128,8 +129,8 @@ func createSampleFile(filePath string) error {
 	}
 
 	defaultFileStructure := fileStructure{
-		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),  // nolint:nomnd // used for sample file
-		SleepDurationBetweenBroadcasts:  (time.Second * 10).String(), // nolint:nomnd // used for sample file
+		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),
+		SleepDurationBetweenBroadcasts:  (time.Second * 10).String(),
 
 		BroadcastType: "stdout",
 		Sources:       sources,

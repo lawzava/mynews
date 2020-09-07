@@ -15,6 +15,7 @@ func (n News) Run(log *logger.Log) error {
 			items, err := parser.ParseURL(source.URL)
 			if err != nil {
 				log.WarnErr(fmt.Sprintf("parsing feed of source '%s'", source.URL), err)
+
 				continue
 			}
 

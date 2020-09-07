@@ -61,14 +61,6 @@ func New(log *logger.Log) (*Config, error) {
 		}
 	}
 
-	if storageFileLocation == "" {
-		storageFileLocation = configFileDefaultLocation
-
-		if e := os.Getenv(storageFilePathEnvironmentVariable); e != "" {
-			storageFileLocation = e
-		}
-	}
-
 	if createSample {
 		if err := createSampleFile(configFileLocation); err != nil {
 			return nil, fmt.Errorf("creating new sample config: %w", err)
@@ -79,5 +71,18 @@ func New(log *logger.Log) (*Config, error) {
 		return nil, nil
 	}
 
-	return fromFile(configFileLocation, log)
+	config, err := fromFile(configFileLocation, log)
+	if err != nil {
+		return nil, fmt.Errorf("parsing config from file: %w", err)
+	}
+
+	if config.StorageFilePath == "" {
+		storageFileLocation = configFileDefaultLocation
+
+		if e := os.Getenv(storageFilePathEnvironmentVariable); e != "" {
+			storageFileLocation = e
+		}
+	}
+
+	return config, nil
 }

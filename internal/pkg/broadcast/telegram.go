@@ -123,6 +123,7 @@ func escapeTelegramText(text string) string {
 		"}", "\\}",
 		".", "\\.",
 		",", "\\,",
+		"!", "\\!",
 	)
 
 	return replacer.Replace(text)

@@ -77,10 +77,10 @@ func New(log *logger.Log) (*Config, error) {
 	}
 
 	if config.StorageFilePath == "" {
-		storageFileLocation = configFileDefaultLocation
+		config.StorageFilePath = configFileDefaultLocation
 
 		if e := os.Getenv(storageFilePathEnvironmentVariable); e != "" {
-			storageFileLocation = e
+			config.StorageFilePath = e
 		}
 	}
 

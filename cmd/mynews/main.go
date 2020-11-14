@@ -18,6 +18,7 @@ func main() {
 	}
 
 	if cfg == nil {
+		log.Warn("cfg is nil")
 		os.Exit(0)
 	}
 

@@ -8,7 +8,7 @@ Easily specify your RSS/Atom sources and broadcast preferences to get personaliz
 
 ## Installation
 
-For linux users a snap package is available through `snap install mynews`.
+For `snap` users a snap package is available through `snap install mynews`.
 
 Otherwise, pre-built binaries that are available in `releases` are recommended.
 

@@ -3,12 +3,11 @@ package config
 import (
 	"flag"
 	"fmt"
-	"os"
-	"time"
-
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/storage"
+	"os"
+	"time"
 )
 
 type Source struct {

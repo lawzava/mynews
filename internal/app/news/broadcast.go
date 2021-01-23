@@ -1,17 +1,15 @@
 package news
 
 import (
-
 	// nolint:gosec // md5 used for key generation, nothing sensitive
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"strings"
-	"time"
-
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/config"
 	"mynews/internal/pkg/parser"
+	"strings"
+	"time"
 )
 
 func (n News) broadcastFeed(stories []parser.Item, source *config.Source) error {

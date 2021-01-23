@@ -2,10 +2,9 @@ package news
 
 import (
 	"fmt"
-	"time"
-
 	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/parser"
+	"time"
 )
 
 func (n News) Run(log *logger.Log) error {

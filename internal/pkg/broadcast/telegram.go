@@ -7,10 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"mynews/internal/pkg/validate"
 	"net/http"
 	"strings"
-
-	"mynews/internal/pkg/validate"
 )
 
 type Telegram struct {

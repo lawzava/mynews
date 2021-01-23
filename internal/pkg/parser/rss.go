@@ -3,7 +3,6 @@ package parser
 import (
 	"encoding/xml"
 	"fmt"
-
 	"mynews/internal/pkg/timeparser"
 )
 

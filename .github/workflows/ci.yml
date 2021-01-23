@@ -16,7 +16,7 @@ jobs:
       - name: Run tests
         run: go test -tags=test -race ./...
 
-      - name: Run golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.35.2
-          $(go env GOPATH)/bin/golangci-lint run ./...
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.35

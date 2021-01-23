@@ -1,8 +1,9 @@
 package news
 
 import (
-	"mynews/internal/pkg/config"
 	"time"
+
+	"mynews/internal/pkg/config"
 )
 
 type News struct {

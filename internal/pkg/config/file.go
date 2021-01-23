@@ -3,11 +3,12 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"time"
+
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/storage"
-	"os"
-	"time"
 )
 
 type fileStructure struct {
@@ -133,8 +134,10 @@ func createSampleFile(filePath string) error {
 	}
 
 	defaultFileStructure := fileStructure{
+		// nolint:gomnd // allow fore defaults
 		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),
-		SleepDurationBetweenBroadcasts:  (time.Second * 10).String(),
+		// nolint:gomnd // allow fore defaults
+		SleepDurationBetweenBroadcasts: (time.Second * 10).String(),
 
 		BroadcastType: "stdout",
 		Sources:       sources,

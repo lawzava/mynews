@@ -4,9 +4,10 @@ package storage_test
 import (
 	"fmt"
 	"math/rand"
-	"mynews/internal/pkg/storage"
 	"testing"
 	"time"
+
+	"mynews/internal/pkg/storage"
 )
 
 func TestStorage(t *testing.T) {

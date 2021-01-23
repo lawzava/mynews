@@ -1,8 +1,9 @@
 package config
 
 import (
-	"mynews/internal/pkg/broadcast"
 	"strings"
+
+	"mynews/internal/pkg/broadcast"
 )
 
 // Defaults to "STDOUT".

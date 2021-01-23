@@ -3,10 +3,11 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
-	"mynews/internal/pkg/logger"
 	"os"
 	"sync"
 	"time"
+
+	"mynews/internal/pkg/logger"
 )
 
 type Storage struct {

@@ -17,7 +17,7 @@ func TestStorage(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		randomKey := fmt.Sprint(rand.Int())
 
-		exists, err := store.KeyExists(randomKey)
+		exists, err := store.KeyExists("", randomKey)
 		if err != nil {
 			t.Error(err)
 		}
@@ -26,12 +26,12 @@ func TestStorage(t *testing.T) {
 			t.Error("key should not exist")
 		}
 
-		err = store.PutKey(randomKey)
+		err = store.PutKey("", randomKey)
 		if err != nil {
 			t.Error(err)
 		}
 
-		exists, err = store.KeyExists(randomKey)
+		exists, err = store.KeyExists("", randomKey)
 		if err != nil {
 			t.Error(err)
 		}
@@ -53,7 +53,7 @@ func TestStorageCleanup(t *testing.T) {
 
 		cleanupBefore := time.Now()
 
-		exists, err := store.KeyExists(randomKey)
+		exists, err := store.KeyExists("", randomKey)
 		if err != nil {
 			t.Error(err)
 		}
@@ -62,12 +62,12 @@ func TestStorageCleanup(t *testing.T) {
 			t.Error("key should not exist")
 		}
 
-		err = store.PutKey(randomKey)
+		err = store.PutKey("", randomKey)
 		if err != nil {
 			t.Error(err)
 		}
 
-		exists, err = store.KeyExists(randomKey)
+		exists, err = store.KeyExists("", randomKey)
 		if err != nil {
 			t.Error(err)
 		}
@@ -76,9 +76,9 @@ func TestStorageCleanup(t *testing.T) {
 			t.Error("key should exist")
 		}
 
-		store.CleanupBefore(cleanupBefore)
+		store.CleanupBefore("", cleanupBefore)
 
-		exists, err = store.KeyExists(randomKey)
+		exists, err = store.KeyExists("", randomKey)
 		if err != nil {
 			t.Error(err)
 		}
@@ -89,14 +89,14 @@ func TestStorageCleanup(t *testing.T) {
 
 		cleanupBefore = time.Now()
 
-		err = store.PutKey(randomKey)
+		err = store.PutKey("", randomKey)
 		if err != nil {
 			t.Error(err)
 		}
 
-		store.CleanupBefore(cleanupBefore)
+		store.CleanupBefore("", cleanupBefore)
 
-		exists, err = store.KeyExists(randomKey)
+		exists, err = store.KeyExists("", randomKey)
 		if err != nil {
 			t.Error(err)
 		}

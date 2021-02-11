@@ -11,31 +11,33 @@ func (n News) Run(log *logger.Log) error {
 	var sourceHadIssues bool
 
 	for {
-		parsingStartedAt := time.Now()
+		for _, app := range n.cfg.Apps {
+			parsingStartedAt := time.Now()
 
-		for _, source := range n.config.Sources {
-			items, err := parser.ParseURL(source.URL)
-			if err != nil {
-				log.WarnErr(fmt.Sprintf("parsing feed of source '%s'", source.URL), err)
+			for _, source := range app.Sources {
+				items, err := parser.ParseURL(source.URL)
+				if err != nil {
+					log.WarnErr(fmt.Sprintf("parsing feed of source '%s'", source.URL), err)
 
-				sourceHadIssues = true
+					sourceHadIssues = true
 
-				continue
+					continue
+				}
+
+				if err = n.broadcastFeed(app.Broadcast, items, source); err != nil {
+					log.WarnErr(fmt.Sprintf("broadcasting items for source '%s'", source.URL), err)
+
+					sourceHadIssues = true
+				}
 			}
 
-			if err = n.broadcastFeed(items, source); err != nil {
-				log.WarnErr(fmt.Sprintf("broadcasting items for source '%s'", source.URL), err)
-
-				sourceHadIssues = true
+			if !sourceHadIssues {
+				n.cfg.Store.CleanupBefore(app.Broadcast.Name(), parsingStartedAt)
 			}
+
+			sourceHadIssues = false
 		}
 
-		if !sourceHadIssues {
-			n.config.Store.CleanupBefore(parsingStartedAt)
-		}
-
-		sourceHadIssues = false
-
-		time.Sleep(n.config.SleepDurationBetweenFeedParsing)
+		time.Sleep(n.cfg.SleepDurationBetweenFeedParsing)
 	}
 }

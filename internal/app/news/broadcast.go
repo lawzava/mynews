@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func (n News) broadcastFeed(stories []parser.Item, source *config.Source) error {
+func (n News) broadcastFeed(bc broadcast.Broadcast, stories []parser.Item, source *config.Source) error {
 	for _, story := range stories {
 		if !storyMatchesConfig(story, source) {
 			continue
@@ -20,7 +20,7 @@ func (n News) broadcastFeed(stories []parser.Item, source *config.Source) error 
 
 		storyID := buildStoryID(story.PublishedAt, story.Link, source.StatusPage)
 
-		storyWasAlreadySent, err := n.config.Store.KeyExists(storyID)
+		storyWasAlreadySent, err := n.cfg.Store.KeyExists(bc.Name(), storyID)
 		if err != nil {
 			return fmt.Errorf("checking if story was already sent: %w", err)
 		}
@@ -29,7 +29,7 @@ func (n News) broadcastFeed(stories []parser.Item, source *config.Source) error 
 			continue
 		}
 
-		if err = n.config.Store.PutKey(storyID); err != nil {
+		if err = n.cfg.Store.PutKey(bc.Name(), storyID); err != nil {
 			return fmt.Errorf("registering story as sent: %w", err)
 		}
 
@@ -38,11 +38,11 @@ func (n News) broadcastFeed(stories []parser.Item, source *config.Source) error 
 			URL:   story.Link,
 		}
 
-		if err = n.config.Broadcast.Send(newBroadcastMessage); err != nil {
+		if err = bc.Send(newBroadcastMessage); err != nil {
 			return fmt.Errorf("broadcasting story: %w", err)
 		}
 
-		time.Sleep(n.config.SleepDurationBetweenBroadcasts)
+		time.Sleep(n.cfg.SleepDurationBetweenBroadcasts)
 	}
 
 	return nil

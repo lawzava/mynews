@@ -25,3 +25,7 @@ func (s StdOut) Send(message Story) error {
 
 	return nil
 }
+
+func (s StdOut) Name() string {
+	return "stdout"
+}

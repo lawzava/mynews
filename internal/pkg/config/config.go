@@ -22,23 +22,28 @@ type Config struct {
 	SleepDurationBetweenFeedParsing time.Duration
 	SleepDurationBetweenBroadcasts  time.Duration
 
-	Sources []*Source
-
-	Store     storage.Storage
-	Broadcast broadcast.Broadcast
-
+	Store           storage.Storage
 	StorageFilePath string
+
+	Apps []App
 }
 
+type App struct {
+	Sources   []*Source
+	Broadcast broadcast.Broadcast
+}
+
+const (
+	configFilePathEnvironmentVariable = "MYNEWS_CONFIG_FILE"
+	configFileDefaultLocation         = "$HOME/.config/mynews/config.json"
+
+	storageFilePathEnvironmentVariable = "MYNEWS_STORAGE_FILE"
+	storageFileDefaultLocation         = "$HOME/.config/mynews/data.json"
+
+	defaultSleepDuration = 10 * time.Second
+)
+
 func New(log *logger.Log) (*Config, error) {
-	const (
-		configFilePathEnvironmentVariable = "MYNEWS_CONFIG_FILE"
-		configFileDefaultLocation         = "$HOME/.config/mynews/config.json"
-
-		storageFilePathEnvironmentVariable = "MYNEWS_STORAGE_FILE"
-		storageFileDefaultLocation         = "$HOME/.config/mynews/data.json"
-	)
-
 	var (
 		configFileLocation, storageFileLocation string
 		createSample                            bool
@@ -71,17 +76,9 @@ func New(log *logger.Log) (*Config, error) {
 		return nil, nil
 	}
 
-	config, err := fromFile(configFileLocation, log)
+	config, err := fromFile(configFileLocation, storageFileLocation, log)
 	if err != nil {
 		return nil, fmt.Errorf("parsing config from file: %w", err)
-	}
-
-	if config.StorageFilePath == "" {
-		config.StorageFilePath = configFileDefaultLocation
-
-		if e := os.Getenv(storageFilePathEnvironmentVariable); e != "" {
-			config.StorageFilePath = e
-		}
 	}
 
 	return config, nil

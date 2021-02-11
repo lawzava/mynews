@@ -13,4 +13,5 @@ type Story struct {
 type Broadcast interface {
 	New() (Broadcast, error)
 	Send(message Story) error
+	Name() string
 }

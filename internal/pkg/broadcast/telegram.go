@@ -29,6 +29,10 @@ func (t Telegram) New() (Broadcast, error) {
 	return t, nil
 }
 
+func (t Telegram) Name() string {
+	return "telegram-" + t.ChatID
+}
+
 var errUnacceptableResponseFromTelegram = errors.New("unacceptable response from Telegram bot API")
 
 func (t Telegram) Send(message Story) error {

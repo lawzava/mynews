@@ -14,13 +14,26 @@ type fileStructure struct {
 	SleepDurationBetweenFeedParsing string `json:"sleepDurationBetweenFeedParsing"`
 	SleepDurationBetweenBroadcasts  string `json:"sleepDurationBetweenBroadcasts"`
 
+	StorageFilePath string `json:"storageFilePath"`
+
+	Elements []fileStructureElement `json:"elements"`
+
+	// Used for backwards compatibility reasons
+	// Deprecated: will be removed in v2
+
+	LegacyBroadcastType       string `json:"broadcastType"`
+	LegacyTelegramBotAPIToken string `json:"telegramBotAPIToken"`
+	LegacyTelegramChatID      string `json:"telegramChatID"`
+
+	LegacySources []fileStructureSource `json:"sources"`
+}
+
+type fileStructureElement struct {
 	BroadcastType       string `json:"broadcastType"`
 	TelegramBotAPIToken string `json:"telegramBotAPIToken"`
 	TelegramChatID      string `json:"telegramChatID"`
 
 	Sources []fileStructureSource `json:"sources"`
-
-	StorageFilePath string `json:"storageFilePath"`
 }
 
 type fileStructureSource struct {
@@ -31,14 +44,14 @@ type fileStructureSource struct {
 	StatusPage          bool     `json:"statusPage"`
 }
 
-func fromFile(filePath string, log *logger.Log) (*Config, error) {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		log.Warn(fmt.Sprintf("File '%s' does not exist", filePath))
+func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config, error) {
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+		log.Warn(fmt.Sprintf("File '%s' does not exist", configFilePath))
 
 		return nil, nil
 	}
 
-	configFile, err := os.Open(filePath)
+	configFile, err := os.Open(configFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("opening config file: %w", err)
 	}
@@ -49,62 +62,70 @@ func fromFile(filePath string, log *logger.Log) (*Config, error) {
 
 	jsonParser := json.NewDecoder(configFile)
 	if err = jsonParser.Decode(&file); err != nil {
-		return nil, fmt.Errorf("decoding config file: %w", err)
+		return nil, fmt.Errorf("decoding config file (legacy): %w", err)
 	}
 
-	return file.toConfig()
+	return file.toConfig(storageFilePath, log)
 }
 
-func (f *fileStructure) toConfig() (*Config, error) {
+func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Config, error) {
 	var (
-		cfg Config
-		err error
+		config Config
+		err    error
 	)
 
-	for _, source := range f.Sources {
-		s := Source{
-			URL:                 source.URL,
-			MustExcludeKeywords: source.MustExcludeAnyOf,
-			MustIncludeKeywords: source.MustIncludeAnyOf,
-		}
-
-		s.IgnoreStoriesBefore, err = time.Parse(time.RFC3339, source.IgnoreStoriesBefore)
-		if err != nil {
-			var dur time.Duration
-
-			dur, err = time.ParseDuration(source.IgnoreStoriesBefore)
-			if err == nil {
-				s.IgnoreStoriesBefore = time.Now().UTC().Add(-dur)
-			}
-		}
-
-		cfg.Sources = append(cfg.Sources, &s)
-	}
-
-	cfg.SleepDurationBetweenBroadcasts, err = time.ParseDuration(f.SleepDurationBetweenBroadcasts)
+	config.SleepDurationBetweenBroadcasts, err = time.ParseDuration(f.SleepDurationBetweenBroadcasts)
 	if err != nil {
 		return nil, fmt.Errorf("invalid broadcast sleep duration format: %w", err)
 	}
 
-	cfg.SleepDurationBetweenFeedParsing, err = time.ParseDuration(f.SleepDurationBetweenFeedParsing)
+	config.SleepDurationBetweenFeedParsing, err = time.ParseDuration(f.SleepDurationBetweenFeedParsing)
 	if err != nil {
 		return nil, fmt.Errorf("invalid feed parsing sleep duration format: %w", err)
 	}
 
-	var broadcastConfig broadcast.Config
-	broadcastConfig.Telegram.BotAPIToken = f.TelegramBotAPIToken
-	broadcastConfig.Telegram.ChatID = f.TelegramChatID
+	config.Store = storage.New()
+	config.StorageFilePath = f.StorageFilePath
 
-	cfg.Store = storage.New()
-
-	cfg.Broadcast, err = parseBroadcast(f.BroadcastType, broadcastConfig)
-	if err != nil {
-		return nil, fmt.Errorf("parsing storage: %w", err)
+	if config.StorageFilePath == "" {
+		config.StorageFilePath = storageFilePath
 	}
 
-	cfg.StorageFilePath = f.StorageFilePath
+	if config.StorageFilePath == "" {
+		config.StorageFilePath = storageFileDefaultLocation
 
-	return &cfg, nil
+		if e := os.Getenv(storageFilePathEnvironmentVariable); e != "" {
+			config.StorageFilePath = e
+		}
+	}
+
+	if config.SleepDurationBetweenBroadcasts == 0 {
+		config.SleepDurationBetweenBroadcasts = defaultSleepDuration
+	}
+
+	if err = config.Store.RecoverFromFile(config.StorageFilePath, log); err != nil {
+		return nil, fmt.Errorf("failed to recover data from file: %w", err)
+	}
+
+	if len(f.Elements) == 0 {
+		f.Elements = append(f.Elements, fileStructureElement{
+			BroadcastType:       f.LegacyBroadcastType,
+			TelegramBotAPIToken: f.LegacyTelegramBotAPIToken,
+			TelegramChatID:      f.LegacyTelegramChatID,
+			Sources:             f.LegacySources,
+		})
+	}
+
+	for _, fe := range f.Elements {
+		elementConfig, err := fe.prepareConfigElement(log)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse config element: %w", err)
+		}
+
+		config.Apps = append(config.Apps, elementConfig)
+	}
+
+	return &config, nil
 }
 
 func createSampleFile(filePath string) error {
@@ -122,7 +143,7 @@ func createSampleFile(filePath string) error {
 	sources := []fileStructureSource{
 		{
 			URL:                 "https://hnrss.org/newest.atom",
-			IgnoreStoriesBefore: time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC).String(),
+			IgnoreStoriesBefore: time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
 			MustIncludeAnyOf:    []string{"linux", "golang", "musk"},
 			MustExcludeAnyOf:    []string{"windows", "trump", "apple"},
 		},
@@ -138,8 +159,12 @@ func createSampleFile(filePath string) error {
 		// nolint:gomnd // allow fore defaults
 		SleepDurationBetweenBroadcasts: (time.Second * 10).String(),
 
-		BroadcastType: "stdout",
-		Sources:       sources,
+		Elements: []fileStructureElement{
+			{
+				BroadcastType: "stdout",
+				Sources:       sources,
+			},
+		},
 	}
 
 	jsonWriter := json.NewEncoder(file)
@@ -150,4 +175,46 @@ func createSampleFile(filePath string) error {
 	}
 
 	return nil
+}
+
+func (fe fileStructureElement) prepareConfigElement(log *logger.Log) (App, error) {
+	var (
+		cfg App
+		err error
+	)
+
+	for _, source := range fe.Sources {
+		s := Source{
+			URL:                 source.URL,
+			MustExcludeKeywords: source.MustExcludeAnyOf,
+			MustIncludeKeywords: source.MustIncludeAnyOf,
+		}
+
+		s.IgnoreStoriesBefore, err = time.Parse(time.RFC3339, source.IgnoreStoriesBefore)
+		if err != nil {
+			log.WarnErr("failed to parse time from IgnoreStoriesBefore parameter", err)
+
+			var dur time.Duration
+
+			dur, err = time.ParseDuration(source.IgnoreStoriesBefore)
+			if err != nil {
+				log.WarnErr("failed to parse duration from IgnoreStoriesBefore parameter", err)
+			}
+
+			s.IgnoreStoriesBefore = time.Now().UTC().Add(-dur)
+		}
+
+		cfg.Sources = append(cfg.Sources, &s)
+	}
+
+	var broadcastConfig broadcast.Config
+	broadcastConfig.Telegram.BotAPIToken = fe.TelegramBotAPIToken
+	broadcastConfig.Telegram.ChatID = fe.TelegramChatID
+
+	cfg.Broadcast, err = parseBroadcast(fe.BroadcastType, broadcastConfig)
+	if err != nil {
+		return cfg, fmt.Errorf("parsing storage: %w", err)
+	}
+
+	return cfg, nil
 }

@@ -18,15 +18,11 @@ func main() {
 	}
 
 	if cfg == nil {
-		log.Warn("cfg is nil")
+		log.Warn("config is empty, exiting (if you have just created config, start the app again without create action)")
 		os.Exit(0)
 	}
 
 	handleInterrupt(cfg, log)
-
-	if err = cfg.Store.RecoverFromFile(cfg.StorageFilePath, log); err != nil {
-		log.Fatal("recovering data from file", err)
-	}
 
 	if err = news.New(cfg).Run(log); err != nil {
 		log.Fatal("failed running feed", err)

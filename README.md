@@ -20,7 +20,10 @@ Executing bare `mynews` will use in-memory DB and will print to stdout by defaul
 
 For full list of available options, see: `mynews -help`
 
-Working example: [https://t.me/lawzava_news](https://t.me/lawzava_news)
+Working examples: 
+
+- Tech News [https://t.me/lawzava_news_tech](https://t.me/lawzava_news_tech)
+- Design News [https://t.me/lawzava_news_design](https://t.me/lawzava_news_design)
 
 ## Contributions and issues
 

@@ -103,10 +103,6 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 		config.SleepDurationBetweenBroadcasts = defaultSleepDuration
 	}
 
-	if err = config.Store.RecoverFromFile(config.StorageFilePath, log); err != nil {
-		return nil, fmt.Errorf("failed to recover data from file: %w", err)
-	}
-
 	if len(f.Elements) == 0 {
 		f.Elements = append(f.Elements, fileStructureElement{
 			BroadcastType:       f.LegacyBroadcastType,
@@ -123,6 +119,14 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 		}
 
 		config.Apps = append(config.Apps, elementConfig)
+	}
+
+	if len(config.Apps) == 0 {
+		return &config, nil
+	}
+
+	if err = config.Store.RecoverFromFile(config.StorageFilePath, log, config.Apps[0].Broadcast.Name()); err != nil {
+		return nil, fmt.Errorf("failed to recover data from file: %w", err)
 	}
 
 	return &config, nil

@@ -94,7 +94,7 @@ func (s *Storage) DumpToFile(filePath string) error {
 	return nil
 }
 
-func (s *Storage) RecoverFromFile(filePath string, log *logger.Log) error {
+func (s *Storage) RecoverFromFile(filePath string, log *logger.Log, legacyAppName string) error {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		log.Warn(fmt.Sprintf("File '%s' does not exist", filePath))
 
@@ -110,7 +110,16 @@ func (s *Storage) RecoverFromFile(filePath string, log *logger.Log) error {
 
 	jsonParser := json.NewDecoder(dataFile)
 	if err = jsonParser.Decode(&s.store); err != nil {
-		return fmt.Errorf("decoding config file: %w", err)
+		var legacyStorageFormat map[string]time.Time
+		if err = jsonParser.Decode(&legacyStorageFormat); err != nil {
+			return fmt.Errorf("decoding config file: %w", err)
+		}
+
+		if s.store[legacyAppName] == nil {
+			s.store[legacyAppName] = make(map[string]time.Time)
+		}
+
+		s.store[legacyAppName] = legacyStorageFormat
 	}
 
 	return nil

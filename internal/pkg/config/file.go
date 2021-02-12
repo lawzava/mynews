@@ -113,7 +113,9 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 	}
 
 	for _, fe := range f.Elements {
-		elementConfig, err := fe.prepareConfigElement(log)
+		var elementConfig App
+
+		elementConfig, err = fe.prepareConfigElement(log)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse config element: %w", err)
 		}

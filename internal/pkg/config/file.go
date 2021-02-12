@@ -198,7 +198,6 @@ func (fe fileStructureElement) prepareConfigElement(log *logger.Log) (App, error
 
 		s.IgnoreStoriesBefore, err = time.Parse(time.RFC3339, source.IgnoreStoriesBefore)
 		if err != nil {
-
 			dur, errDur := time.ParseDuration(source.IgnoreStoriesBefore)
 			if errDur != nil {
 				log.WarnErr("failed to parse time from IgnoreStoriesBefore parameter", err)

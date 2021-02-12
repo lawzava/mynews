@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mynews/internal/pkg/logger"
 	"os"
@@ -108,17 +109,52 @@ func (s *Storage) RecoverFromFile(filePath string, log *logger.Log, legacyAppNam
 
 	defer func() { _ = dataFile.Close() }()
 
-	if err = json.NewDecoder(dataFile).Decode(&s.store); err != nil {
-		var legacyStorageFormat map[string]time.Time
-		if err = json.NewDecoder(dataFile).Decode(&legacyStorageFormat); err != nil {
-			return fmt.Errorf("decoding config file: %w", err)
+	var dataFileContents map[string]interface{}
+
+	err = json.NewDecoder(dataFile).Decode(&dataFileContents)
+	if err != nil {
+		return fmt.Errorf("decoding config file: %w", err)
+	}
+
+	for key, value := range dataFileContents {
+		if val, ok := value.(string); ok {
+			if s.store[legacyAppName] == nil {
+				s.store[legacyAppName] = make(map[string]time.Time)
+			}
+
+			t, err := time.Parse(time.RFC3339, val)
+			if err != nil {
+				return fmt.Errorf("failed to parse time: %w", err)
+			}
+
+			s.store[legacyAppName][key] = t
+
+			continue
 		}
 
-		if s.store[legacyAppName] == nil {
-			s.store[legacyAppName] = make(map[string]time.Time)
+		val, ok := value.(map[string]interface{})
+		if !ok {
+			return errors.New(fmt.Sprintf("bad input value: %+v", value))
 		}
 
-		s.store[legacyAppName] = legacyStorageFormat
+		for story, timeInterface := range val {
+			timeString, ok := timeInterface.(string)
+			if !ok {
+				return errors.New(fmt.Sprintf("bad time value: %+v", timeInterface))
+			}
+
+			t, err := time.Parse(time.RFC3339, timeString)
+			if err != nil {
+				return fmt.Errorf("failed to parse mapped time: %w", err)
+			}
+
+			if s.store[key] == nil {
+				s.store[key] = make(map[string]time.Time)
+			}
+
+			s.store[key][story] = t
+		}
+
 	}
 
 	return nil

@@ -116,7 +116,16 @@ func (s *Storage) RecoverFromFile(filePath string, log *logger.Log, legacyAppNam
 		return fmt.Errorf("decoding config file: %w", err)
 	}
 
-	for key, value := range dataFileContents {
+	return s.parseFileContents(dataFileContents, legacyAppName)
+}
+
+var (
+	ErrBadInputValue = errors.New("bad input value")
+	ErrBadTimeValue  = errors.New("bad time value")
+)
+
+func (s *Storage) parseFileContents(fileContents map[string]interface{}, legacyAppName string) error {
+	for key, value := range fileContents {
 		if val, ok := value.(string); ok {
 			if s.store[legacyAppName] == nil {
 				s.store[legacyAppName] = make(map[string]time.Time)
@@ -134,13 +143,13 @@ func (s *Storage) RecoverFromFile(filePath string, log *logger.Log, legacyAppNam
 
 		val, ok := value.(map[string]interface{})
 		if !ok {
-			return errors.New(fmt.Sprintf("bad input value: %+v", value))
+			return ErrBadInputValue
 		}
 
 		for story, timeInterface := range val {
 			timeString, ok := timeInterface.(string)
 			if !ok {
-				return errors.New(fmt.Sprintf("bad time value: %+v", timeInterface))
+				return ErrBadTimeValue
 			}
 
 			t, err := time.Parse(time.RFC3339, timeString)
@@ -154,7 +163,6 @@ func (s *Storage) RecoverFromFile(filePath string, log *logger.Log, legacyAppNam
 
 			s.store[key][story] = t
 		}
-
 	}
 
 	return nil

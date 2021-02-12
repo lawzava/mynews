@@ -108,10 +108,9 @@ func (s *Storage) RecoverFromFile(filePath string, log *logger.Log, legacyAppNam
 
 	defer func() { _ = dataFile.Close() }()
 
-	jsonParser := json.NewDecoder(dataFile)
-	if err = jsonParser.Decode(&s.store); err != nil {
+	if err = json.NewDecoder(dataFile).Decode(&s.store); err != nil {
 		var legacyStorageFormat map[string]time.Time
-		if err = jsonParser.Decode(&legacyStorageFormat); err != nil {
+		if err = json.NewDecoder(dataFile).Decode(&legacyStorageFormat); err != nil {
 			return fmt.Errorf("decoding config file: %w", err)
 		}
 

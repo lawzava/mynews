@@ -3,12 +3,11 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"time"
-
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/storage"
+	"os"
+	"time"
 )
 
 type fileStructure struct {

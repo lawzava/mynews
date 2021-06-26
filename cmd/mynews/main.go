@@ -1,13 +1,12 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
-
 	"mynews/internal/app/news"
 	"mynews/internal/pkg/config"
 	"mynews/internal/pkg/logger"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {

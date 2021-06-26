@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mynews/internal/pkg/logger"
 	"os"
 	"sync"
 	"time"
-
-	"mynews/internal/pkg/logger"
 )
 
 type Storage struct {

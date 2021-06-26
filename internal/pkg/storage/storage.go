@@ -40,17 +40,14 @@ func (s *Storage) PutKey(app, key string) error {
 
 func (s *Storage) KeyExists(app, key string) (bool, error) {
 	s.mux.Lock()
+	defer s.mux.Unlock()
+
 	if s.store[app] == nil {
 		s.store[app] = make(map[string]time.Time)
 	}
 
-	_, ok := s.store[app][key]
-	s.mux.Unlock()
-
-	if ok {
-		s.mux.Lock()
+	if _, ok := s.store[app][key]; ok {
 		s.store[app][key] = time.Now()
-		s.mux.Unlock()
 
 		return true, nil
 	}

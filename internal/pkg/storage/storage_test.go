@@ -4,9 +4,10 @@ package storage_test
 import (
 	"fmt"
 	"math/rand"
-	"mynews/internal/pkg/storage"
 	"testing"
 	"time"
+
+	"mynews/internal/pkg/storage"
 )
 
 func TestStorage(t *testing.T) {
@@ -42,7 +43,7 @@ func TestStorage(t *testing.T) {
 	}
 }
 
-// nolint:funlen // allow for statements excession
+// nolint:funlen,cyclop // allow for statements excession
 func TestStorageCleanup(t *testing.T) {
 	store := storage.New()
 

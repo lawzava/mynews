@@ -36,16 +36,19 @@ func (t Telegram) Name() string {
 var errUnacceptableResponseFromTelegram = errors.New("unacceptable response from Telegram bot API")
 
 func (t Telegram) Send(message Story) error {
+	// nolint:tagliatelle // required structure for telegram requests
 	type inlineKeyboard struct {
 		Text              string `json:"text"`
 		URL               string `json:"url"`
 		SwitchInlineQuery string `json:"switch_inline_query"`
 	}
 
+	// nolint:tagliatelle // required structure for telegram requests
 	type replyMarkup struct {
 		InlineKeyboard [][]inlineKeyboard `json:"inline_keyboard"`
 	}
 
+	// nolint:tagliatelle // required structure for telegram requests
 	telegramMessage := struct {
 		ChatID      string      `json:"chat_id"`
 		ParseMode   string      `json:"parse_mode"`

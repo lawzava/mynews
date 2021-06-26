@@ -3,11 +3,12 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"time"
+
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/storage"
-	"os"
-	"time"
 )
 
 type fileStructure struct {
@@ -68,6 +69,7 @@ func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config,
 	return file.toConfig(storageFilePath, log)
 }
 
+// nolint:cyclop // allow higher complexity on config setup for now
 func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Config, error) {
 	var (
 		config Config

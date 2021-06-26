@@ -1,12 +1,13 @@
 package main
 
 import (
-	"mynews/internal/app/news"
-	"mynews/internal/pkg/config"
-	"mynews/internal/pkg/logger"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"mynews/internal/app/news"
+	"mynews/internal/pkg/config"
+	"mynews/internal/pkg/logger"
 )
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 }
 
 func handleInterrupt(cfg *config.Config, log *logger.Log) {
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go func() {

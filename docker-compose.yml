@@ -5,8 +5,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: mynews -config /etc/mynews.json
+    command: mynews -config /etc/config.json
     volumes:
       - type: bind
         source: ./config.json
-        target: /etc/mynews.json
+        target: /etc/config.json
+      - type: bind
+        source: ./data.json
+        target: /var/data.json

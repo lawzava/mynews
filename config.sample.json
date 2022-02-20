@@ -1,7 +1,7 @@
 {
 	"sleepDurationBetweenFeedParsing": "5m0s",
 	"sleepDurationBetweenBroadcasts": "10s",
-	"storageFilePath": "",
+	"storageFilePath": "/var/data.json",
 	"apps": [
 		{
 			"broadcastType": "stdout",

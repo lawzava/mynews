@@ -1,0 +1,40 @@
+{
+	"sleepDurationBetweenFeedParsing": "5m0s",
+	"sleepDurationBetweenBroadcasts": "10s",
+	"storageFilePath": "",
+	"apps": [
+		{
+			"broadcastType": "stdout",
+			"telegramBotAPIToken": "",
+			"telegramChatID": "",
+			"sources": [
+				{
+					"url": "https://hnrss.org/newest.atom",
+					"ignoreStoriesBefore": "2020-04-20T00:00:00Z",
+					"mustIncludeAnyOf": [
+						"linux",
+						"golang",
+						"musk"
+					],
+					"mustExcludeAnyOf": [
+						"windows",
+						"trump",
+						"apple"
+					],
+					"statusPage": false
+				},
+				{
+					"url": "https://hnrss.org/newest.atom",
+					"ignoreStoriesBefore": "1h0m0s",
+					"mustIncludeAnyOf": null,
+					"mustExcludeAnyOf": null,
+					"statusPage": false
+				}
+			]
+		}
+	],
+	"broadcastType": "",
+	"telegramBotAPIToken": "",
+	"telegramChatID": "",
+	"sources": null
+}

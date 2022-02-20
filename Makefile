@@ -28,3 +28,12 @@ snap-install:
 
 snap-publish:
 	snapcraft push --release=edge mynews_*_amd64.snap
+
+docker-build:
+	docker build -t mynews:local .
+
+docker-run:
+	docker run mynews:local
+
+compose-run:
+	docker-compose up

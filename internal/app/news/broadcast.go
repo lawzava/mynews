@@ -1,7 +1,7 @@
 package news
 
 import (
-	// nolint:gosec // md5 used for key generation, nothing sensitive
+	//nolint:gosec // md5 used for key generation, nothing sensitive
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func (n News) broadcastFeed(bc broadcast.Broadcast, stories []parser.Item, source *config.Source) error {
+func (n News) broadcastFeed(briadcastClient broadcast.Broadcast, stories []parser.Item, source *config.Source) error {
 	for _, story := range stories {
 		if !storyMatchesConfig(story, source) {
 			continue
@@ -20,7 +20,7 @@ func (n News) broadcastFeed(bc broadcast.Broadcast, stories []parser.Item, sourc
 
 		storyID := buildStoryID(story.PublishedAt, story.Link, source.StatusPage)
 
-		storyWasAlreadySent, err := n.cfg.Store.KeyExists(bc.Name(), storyID)
+		storyWasAlreadySent, err := n.cfg.Store.KeyExists(briadcastClient.Name(), storyID)
 		if err != nil {
 			return fmt.Errorf("checking if story was already sent: %w", err)
 		}
@@ -29,7 +29,7 @@ func (n News) broadcastFeed(bc broadcast.Broadcast, stories []parser.Item, sourc
 			continue
 		}
 
-		if err = n.cfg.Store.PutKey(bc.Name(), storyID); err != nil {
+		if err = n.cfg.Store.PutKey(briadcastClient.Name(), storyID); err != nil {
 			return fmt.Errorf("registering story as sent: %w", err)
 		}
 
@@ -38,7 +38,7 @@ func (n News) broadcastFeed(bc broadcast.Broadcast, stories []parser.Item, sourc
 			URL:   story.Link,
 		}
 
-		if err = bc.Send(newBroadcastMessage); err != nil {
+		if err = briadcastClient.Send(newBroadcastMessage); err != nil {
 			return fmt.Errorf("broadcasting story: %w", err)
 		}
 
@@ -89,13 +89,13 @@ func includesKeywords(target string, keywords []string) bool {
 }
 
 func buildStoryID(published, link string, statusPage bool) string {
-	h := md5.New() // nolint:gosec // speed is higher concern than security in this use case
+	hash := md5.New() //nolint:gosec // speed is higher concern than security in this use case
 
 	if statusPage {
-		_, _ = h.Write([]byte(published + link))
+		_, _ = hash.Write([]byte(published + link))
 	} else {
-		_, _ = h.Write([]byte(link))
+		_, _ = hash.Write([]byte(link))
 	}
 
-	return hex.EncodeToString(h.Sum(nil))
+	return hex.EncodeToString(hash.Sum(nil))
 }

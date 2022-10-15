@@ -8,8 +8,8 @@ import (
 
 type StdOut struct{}
 
-func (s StdOut) New() (Broadcast, error) {
-	return s, nil
+func NewStdOutClient() *StdOut {
+	return &StdOut{}
 }
 
 func (s StdOut) Send(message Story) error {

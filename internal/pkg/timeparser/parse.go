@@ -2,6 +2,7 @@ package timeparser
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -11,37 +12,36 @@ var (
 	errFailedtoParseTime = errors.New("failed to parse time")
 )
 
-func ParseUTC(ts string) (t time.Time, err error) {
-	d := strings.TrimSpace(ts)
-	if d == "" {
-		return t, errEmptyInputString
+func ParseUTC(timestampString string) (time.Time, error) {
+	datetime := strings.TrimSpace(timestampString)
+	if datetime == "" {
+		return time.Time{}, errEmptyInputString
 	}
 
-	defer func() { t = t.UTC() }()
-
 	for _, f := range &dateFormats {
-		if t, err = time.Parse(f, d); err == nil {
-			return
+		parsedTimestamp, err := time.Parse(f, datetime)
+		if err == nil {
+			return parsedTimestamp, nil
 		}
 	}
 
-	for _, f := range &dateFormatsWithNamedZone {
-		t, err = time.Parse(f, d)
+	for _, format := range &dateFormatsWithNamedZone {
+		timestamp, err := time.Parse(format, datetime)
 		if err != nil {
 			continue
 		}
 
 		var loc *time.Location
 
-		loc, err = time.LoadLocation(t.Location().String())
+		loc, err = time.LoadLocation(timestamp.Location().String())
 		if err != nil {
-			return t, nil
+			return timestamp, fmt.Errorf("failed to parse time: %w", err)
 		}
 
-		if t, err = time.ParseInLocation(f, ts, loc); err == nil {
-			return t, nil
+		if timestamp, err = time.ParseInLocation(format, timestampString, loc); err == nil {
+			return timestamp, nil
 		}
 	}
 
-	return t, errFailedtoParseTime
+	return time.Time{}.UTC(), errFailedtoParseTime
 }

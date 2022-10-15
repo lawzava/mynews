@@ -1,5 +1,5 @@
 # Compile app binary
-FROM golang:1.17.7-alpine3.15 as build-env
+FROM golang:1.19.2-alpine3.16 as build-env
 
 WORKDIR /build
 

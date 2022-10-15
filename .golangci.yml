@@ -17,7 +17,7 @@ linters-settings:
   gocyclo:
     min-complexity: 20
   goimports:
-    local-prefixes: github.com/golangci/golangci-lint
+    local-prefixes: mynews
   govet:
     check-shadowing: true
   lll:
@@ -32,76 +32,10 @@ linters-settings:
         json: goCamel
 
 linters:
-  disable-all: true
-  enable:
-    - bodyclose
-    - deadcode
-    - depguard
-    - dogsled
-    - dupl
-    - errcheck
-    - funlen
-    - gochecknoinits
-    - goconst
-    - gocritic
-    - gocyclo
-    - gofmt
-    - goimports
-    - gosec
-    - gosimple
-    - govet
-    - ineffassign
-    - lll
-    - misspell
-    - nakedret
-    - staticcheck
-    - structcheck
-    - stylecheck
-    - typecheck
-    - unconvert
-    - unparam
-    - unused
-    - varcheck
-    - whitespace
-    - gochecknoglobals
-    - gocognit
-    - prealloc
-    - wsl
-    - goprintffuncname
-    - rowserrcheck
-    - gomnd
-    - godox
-    - goerr113
-    - gomodguard
-    - godot
-    - testpackage
-    - nestif
-    - nolintlint
-    - asciicheck
-    - exhaustive
-    - exportloopref
-    - gofumpt
-    - goheader
-    - nlreturn
-    - noctx
-    - sqlclosecheck
-    - cyclop
-    - durationcheck
-    - forcetypeassert
-#    - gci
-    - gomoddirectives
-    - importas
-    - nilerr
-    - promlinter
-    - revive
-    - tagliatelle
-    - testpackage
-    - wastedassign
-    - ifshort
-    # - interfacer # Deprecated
-    # - golint # Deprecated
-    # - maligned # Deprecated
-    # - scopelint # Deprecated
+  enable-all: true
+  disable:
+    - gci # conflicts with gofumpt
+    - goimports # conflicts with gofumpt
 
 run:
   timeout: 5m

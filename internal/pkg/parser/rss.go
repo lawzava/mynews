@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"mynews/internal/pkg/timeparser"
+	"time"
 )
 
 type rssFeed struct {
@@ -19,22 +20,29 @@ type rssItem struct {
 	PubDate string `xml:"pubDate"`
 }
 
-func parseRSS(body []byte) (items []Item, err error) {
-	var r rssFeed
+func parseRSS(body []byte) ([]Item, error) {
+	var feed rssFeed
 
-	if err = xml.Unmarshal(body, &r); err != nil {
+	if err := xml.Unmarshal(body, &feed); err != nil {
 		return nil, errInvalidFeedType
 	}
 
-	for _, feedItem := range r.Items {
-		item := Item{Title: feedItem.Title, Link: feedItem.Link, PublishedAt: feedItem.PubDate}
+	items := make([]Item, len(feed.Items))
 
-		item.PublishedAtParsed, err = timeparser.ParseUTC(feedItem.PubDate)
+	for itemIdx := range feed.Items {
+		items[itemIdx] = Item{
+			Title:             feed.Items[itemIdx].Title,
+			Link:              feed.Items[itemIdx].Link,
+			PublishedAt:       feed.Items[itemIdx].PubDate,
+			PublishedAtParsed: time.Time{},
+		}
+
+		publishedParsedAt, err := timeparser.ParseUTC(feed.Items[itemIdx].PubDate)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse feed item publish date: %w", err)
 		}
 
-		items = append(items, item)
+		items[itemIdx].PublishedAtParsed = publishedParsedAt
 	}
 
 	return items, nil

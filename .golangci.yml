@@ -33,6 +33,9 @@ linters-settings:
 
 linters:
   enable-all: true
+  disable:
+    - gci # conflicts with gofumpt
+    - goimports # conflicts with gofumpt
 
 run:
   timeout: 5m

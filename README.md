@@ -2,9 +2,11 @@
 
 # MyNews
 
-Personalized news feed parser & broadcast
+Personalized news feed parser & broadcast.
 
-Easily specify your RSS/Atom sources and broadcast preferences to get personalized news feed
+Easily specify your RSS/Atom sources and broadcast preferences to get personalized news feed.
+
+No external dependencies are used. The project is fully self-contained.
 
 ## Installation
 

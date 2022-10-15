@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mynews/internal/pkg/validate"
 	"net/http"
 	"strings"
@@ -17,16 +17,21 @@ type Telegram struct {
 	ChatID      string
 }
 
-func (t Telegram) New() (Broadcast, error) {
-	if err := validate.RequiredString(t.BotAPIToken, "Telegram API Token"); err != nil {
-		return nil, err
+func NewTelegramClient(botAPIToken, chatID string) (*Telegram, error) {
+	client := Telegram{
+		BotAPIToken: botAPIToken,
+		ChatID:      chatID,
 	}
 
-	if err := validate.RequiredString(t.ChatID, "Telegram Chat ID"); err != nil {
-		return nil, err
+	if err := validate.RequiredString(client.BotAPIToken, "Telegram API Token"); err != nil {
+		return nil, fmt.Errorf("validating Telegram API Token: %w", err)
 	}
 
-	return t, nil
+	if err := validate.RequiredString(client.ChatID, "Telegram Chat ID"); err != nil {
+		return nil, fmt.Errorf("validating Telegram Chat ID: %w", err)
+	}
+
+	return &client, nil
 }
 
 func (t Telegram) Name() string {
@@ -36,19 +41,19 @@ func (t Telegram) Name() string {
 var errUnacceptableResponseFromTelegram = errors.New("unacceptable response from Telegram bot API")
 
 func (t Telegram) Send(message Story) error {
-	// nolint:tagliatelle // required structure for telegram requests
+	//nolint:tagliatelle // required structure for telegram requests
 	type inlineKeyboard struct {
 		Text              string `json:"text"`
 		URL               string `json:"url"`
 		SwitchInlineQuery string `json:"switch_inline_query"`
 	}
 
-	// nolint:tagliatelle // required structure for telegram requests
+	//nolint:tagliatelle // required structure for telegram requests
 	type replyMarkup struct {
 		InlineKeyboard [][]inlineKeyboard `json:"inline_keyboard"`
 	}
 
-	// nolint:tagliatelle // required structure for telegram requests
+	//nolint:tagliatelle // required structure for telegram requests
 	telegramMessage := struct {
 		ChatID      string      `json:"chat_id"`
 		ParseMode   string      `json:"parse_mode"`
@@ -80,6 +85,7 @@ func (t Telegram) Send(message Story) error {
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 
+	//nolint:exhaustivestruct,exhaustruct // no need to set any other fields
 	client := &http.Client{}
 
 	resp, err := client.Do(req)
@@ -87,9 +93,13 @@ func (t Telegram) Send(message Story) error {
 		return fmt.Errorf("executing request to Telegram API: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err = resp.Body.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("reading response body: %w", err)
 	}

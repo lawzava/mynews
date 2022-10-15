@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"mynews/internal/pkg/broadcast"
@@ -9,6 +10,8 @@ import (
 	"os"
 	"time"
 )
+
+var ErrCreatedNewFile = errors.New("created new file")
 
 type Source struct {
 	URL                 string
@@ -73,7 +76,7 @@ func New(log *logger.Log) (*Config, error) {
 
 		log.Info(fmt.Sprintf(`Created a sample config file at '%s'`, configFileLocation))
 
-		return nil, nil
+		return nil, fmt.Errorf("created sample config file: %w", ErrCreatedNewFile)
 	}
 
 	config, err := fromFile(configFileLocation, storageFileLocation, log)

@@ -48,7 +48,7 @@ func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config,
 	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
 		log.Warn(fmt.Sprintf("File '%s' does not exist", configFilePath))
 
-		return nil, nil
+		return nil, fmt.Errorf("file '%s' does not exist: %w", configFilePath, err)
 	}
 
 	configFile, err := os.Open(configFilePath)
@@ -68,7 +68,7 @@ func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config,
 	return file.toConfig(storageFilePath, log)
 }
 
-// nolint:cyclop // allow higher complexity on config setup for now
+//nolint:cyclop // allow higher complexity on config setup for now
 func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Config, error) {
 	var (
 		config Config
@@ -161,17 +161,21 @@ func createSampleFile(filePath string) error {
 	}
 
 	defaultFileStructure := fileStructure{
-		// nolint:gomnd // allow fore defaults
+		//nolint:gomnd // allow fore defaults
 		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),
-		// nolint:gomnd // allow fore defaults
+		//nolint:gomnd // allow fore defaults
 		SleepDurationBetweenBroadcasts: (time.Second * 10).String(),
-
+		StorageFilePath:                "",
 		Elements: []fileStructureElement{
 			{
 				BroadcastType: "stdout",
 				Sources:       sources,
 			},
 		},
+		LegacyBroadcastType:       "",
+		LegacyTelegramBotAPIToken: "",
+		LegacyTelegramChatID:      "",
+		LegacySources:             nil,
 	}
 
 	jsonWriter := json.NewEncoder(file)
@@ -190,34 +194,41 @@ func (fe fileStructureElement) prepareConfigElement(log *logger.Log) (App, error
 		err error
 	)
 
-	for _, source := range fe.Sources {
-		s := Source{
-			URL:                 source.URL,
-			MustExcludeKeywords: source.MustExcludeAnyOf,
-			MustIncludeKeywords: source.MustIncludeAnyOf,
+	cfg.Sources = make([]*Source, len(fe.Sources))
+
+	for sourceIdx := range fe.Sources {
+		cfg.Sources[sourceIdx] = &Source{
+			URL:                 fe.Sources[sourceIdx].URL,
+			IgnoreStoriesBefore: time.Time{},
+			MustIncludeKeywords: fe.Sources[sourceIdx].MustIncludeAnyOf,
+			MustExcludeKeywords: fe.Sources[sourceIdx].MustExcludeAnyOf,
+			StatusPage:          false,
 		}
 
-		s.IgnoreStoriesBefore, err = time.Parse(time.RFC3339, source.IgnoreStoriesBefore)
+		cfg.Sources[sourceIdx].IgnoreStoriesBefore, err = time.Parse(time.RFC3339, fe.Sources[sourceIdx].IgnoreStoriesBefore)
 		if err != nil {
-			dur, errDur := time.ParseDuration(source.IgnoreStoriesBefore)
+			dur, errDur := time.ParseDuration(fe.Sources[sourceIdx].IgnoreStoriesBefore)
 			if errDur != nil {
 				log.WarnErr("failed to parse time from IgnoreStoriesBefore parameter", err)
 				log.WarnErr("failed to parse duration from IgnoreStoriesBefore parameter", errDur)
 			}
 
-			s.IgnoreStoriesBefore = time.Now().UTC().Add(-dur)
+			cfg.Sources[sourceIdx].IgnoreStoriesBefore = time.Now().UTC().Add(-dur)
 		}
-
-		cfg.Sources = append(cfg.Sources, &s)
 	}
 
-	var broadcastConfig broadcast.Config
-	broadcastConfig.Telegram.BotAPIToken = fe.TelegramBotAPIToken
-	broadcastConfig.Telegram.ChatID = fe.TelegramChatID
+	broadcastConfig := broadcast.Config{
+		StdOut:   broadcast.NewStdOutClient(),
+		Telegram: nil,
+	}
 
-	cfg.Broadcast, err = parseBroadcast(fe.BroadcastType, broadcastConfig)
-	if err != nil {
-		return cfg, fmt.Errorf("parsing storage: %w", err)
+	if fe.BroadcastType == "TELEGRAM" {
+		telegramClient, err := broadcast.NewTelegramClient(fe.TelegramBotAPIToken, fe.TelegramChatID)
+		if err != nil {
+			return App{}, fmt.Errorf("failed to create telegram client: %w", err)
+		}
+
+		broadcastConfig.Telegram = telegramClient
 	}
 
 	return cfg, nil

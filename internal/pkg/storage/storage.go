@@ -149,7 +149,7 @@ func (s *Storage) parseFileContents(fileContents map[string]interface{}, legacyA
 				return ErrBadTimeValue
 			}
 
-			t, err := time.Parse(time.RFC3339, timeString)
+			timestamp, err := time.Parse(time.RFC3339, timeString)
 			if err != nil {
 				return fmt.Errorf("failed to parse mapped time: %w", err)
 			}
@@ -158,7 +158,7 @@ func (s *Storage) parseFileContents(fileContents map[string]interface{}, legacyA
 				s.store[key] = make(map[string]time.Time)
 			}
 
-			s.store[key][story] = t
+			s.store[key][story] = timestamp
 		}
 	}
 

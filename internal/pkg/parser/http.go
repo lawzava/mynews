@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
 var errBadResponseCode = errors.New("bad response code")
 
-func fromURL(url string) (body []byte, err error) {
+func fromURL(url string) ([]byte, error) {
+	//nolint:exhaustivestruct,exhaustruct // no need to set any other fields
 	client := http.Client{}
 
-	req, err := http.NewRequestWithContext(context.Background(), "GET", url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build http request: %w", err)
 	}
@@ -38,7 +39,7 @@ func fromURL(url string) (body []byte, err error) {
 		return nil, errBadResponseCode
 	}
 
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading body: %w", err)
 	}

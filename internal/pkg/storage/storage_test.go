@@ -1,4 +1,4 @@
-// nolint:gosec // allow weak generators on tests
+//nolint:gosec // allow weak generators on tests
 package storage_test
 
 import (
@@ -10,6 +10,8 @@ import (
 )
 
 func TestStorage(t *testing.T) {
+	t.Parallel()
+
 	store := storage.New()
 
 	rand.Seed(time.Now().Unix())
@@ -42,8 +44,10 @@ func TestStorage(t *testing.T) {
 	}
 }
 
-// nolint:funlen,cyclop // allow for statements excession
+//nolint:funlen,cyclop // allow for statements excession
 func TestStorageCleanup(t *testing.T) {
+	t.Parallel()
+
 	store := storage.New()
 
 	rand.Seed(time.Now().Unix())

@@ -2,7 +2,7 @@ package timeparser
 
 import "time"
 
-var dateFormats = [...]string{ // nolint:gochecknoglobals // exception since constant is impossible
+var dateFormats = [...]string{ //nolint:gochecknoglobals // exception since constant is impossible
 	time.RFC822,  // RSS
 	time.RFC822Z, // RSS
 	time.RFC3339, // Atom
@@ -129,7 +129,7 @@ var dateFormats = [...]string{ // nolint:gochecknoglobals // exception since con
 	"01-02-2006",
 }
 
-var dateFormatsWithNamedZone = [...]string{ // nolint:gochecknoglobals // exception since constant is impossible
+var dateFormatsWithNamedZone = [...]string{ //nolint:gochecknoglobals // exception since constant is impossible
 	"Mon, January 02, 2006, 15:04:05 MST",
 	"Mon, January 02, 2006 15:04:05 MST",
 	"Mon, Jan 2, 2006 15:04 MST",

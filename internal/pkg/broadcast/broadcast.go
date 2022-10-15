@@ -1,8 +1,8 @@
 package broadcast
 
 type Config struct {
-	StdOut   StdOut
-	Telegram Telegram
+	StdOut   Broadcast
+	Telegram Broadcast
 }
 
 type Story struct {
@@ -11,7 +11,6 @@ type Story struct {
 }
 
 type Broadcast interface {
-	New() (Broadcast, error)
 	Send(message Story) error
 	Name() string
 }

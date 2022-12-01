@@ -217,10 +217,7 @@ func (fe fileStructureElement) prepareConfigElement(log *logger.Log) (App, error
 		}
 	}
 
-	broadcastConfig := broadcast.Config{
-		StdOut:   broadcast.NewStdOutClient(),
-		Telegram: nil,
-	}
+	cfg.Broadcast = broadcast.NewStdOutClient()
 
 	if fe.BroadcastType == "TELEGRAM" {
 		telegramClient, err := broadcast.NewTelegramClient(fe.TelegramBotAPIToken, fe.TelegramChatID)
@@ -228,7 +225,7 @@ func (fe fileStructureElement) prepareConfigElement(log *logger.Log) (App, error
 			return App{}, fmt.Errorf("failed to create telegram client: %w", err)
 		}
 
-		broadcastConfig.Telegram = telegramClient
+		cfg.Broadcast = telegramClient
 	}
 
 	return cfg, nil

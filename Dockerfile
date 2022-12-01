@@ -5,7 +5,7 @@ WORKDIR /build
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go install -installsuffix cgo  -ldflags '-extldflags "-static"' ./cmd/...
+RUN CGO_ENABLED=0 GOOS=linux go install -installsuffix cgo  -ldflags '-extldflags "-static"' ./cmd/...
 
 # Run app in scratch
 FROM scratch

@@ -153,10 +153,14 @@ func createSampleFile(filePath string) error {
 			IgnoreStoriesBefore: time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
 			MustIncludeAnyOf:    []string{"linux", "golang", "musk"},
 			MustExcludeAnyOf:    []string{"windows", "trump", "apple"},
+			StatusPage:          false,
 		},
 		{
 			URL:                 "https://hnrss.org/newest.atom",
 			IgnoreStoriesBefore: time.Hour.String(),
+			MustIncludeAnyOf:    nil,
+			MustExcludeAnyOf:    nil,
+			StatusPage:          false,
 		},
 	}
 
@@ -168,8 +172,10 @@ func createSampleFile(filePath string) error {
 		StorageFilePath:                "",
 		Elements: []fileStructureElement{
 			{
-				BroadcastType: "stdout",
-				Sources:       sources,
+				BroadcastType:       "stdout",
+				Sources:             sources,
+				TelegramBotAPIToken: "",
+				TelegramChatID:      "",
 			},
 		},
 		LegacyBroadcastType:       "",

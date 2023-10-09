@@ -70,7 +70,7 @@ func (t Telegram) Send(message Story) error {
 		),
 		ReplyMarkup: replyMarkup{
 			InlineKeyboard: [][]inlineKeyboard{
-				{{Text: "Read", URL: message.URL}},
+				{{Text: "Read", URL: message.URL, SwitchInlineQuery: ""}},
 			},
 		},
 	}

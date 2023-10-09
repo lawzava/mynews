@@ -39,7 +39,6 @@ func (l Log) Fatal(msg string, err error) {
 	l.print(Error, msg, err)
 }
 
-//nolint:forbidigo // allow in library
 func (l Log) print(logLevel Level, msg ...interface{}) {
 	if logLevel < l.logLevel {
 		return

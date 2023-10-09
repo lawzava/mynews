@@ -14,10 +14,10 @@ func TestStorage(t *testing.T) {
 
 	store := storage.New()
 
-	rand.Seed(time.Now().Unix())
+	rGen := rand.New(rand.NewSource(time.Now().Unix()))
 
 	for i := 0; i < 1000; i++ {
-		randomKey := fmt.Sprint(rand.Int())
+		randomKey := fmt.Sprint(rGen.Int())
 
 		exists, err := store.KeyExists("", randomKey)
 		if err != nil {
@@ -50,10 +50,10 @@ func TestStorageCleanup(t *testing.T) {
 
 	store := storage.New()
 
-	rand.Seed(time.Now().Unix())
+	rGen := rand.New(rand.NewSource(time.Now().Unix()))
 
 	for i := 0; i < 1000; i++ {
-		randomKey := fmt.Sprint(rand.Int())
+		randomKey := fmt.Sprint(rGen.Int())
 
 		cleanupBefore := time.Now()
 

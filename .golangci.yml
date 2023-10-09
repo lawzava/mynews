@@ -36,6 +36,7 @@ linters:
   disable:
     - gci # conflicts with gofumpt
     - goimports # conflicts with gofumpt
+    - depguard
 
 run:
   timeout: 5m

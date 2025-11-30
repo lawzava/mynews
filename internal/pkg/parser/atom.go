@@ -25,7 +25,8 @@ type atomLink struct {
 func parseAtom(body []byte) ([]Item, error) {
 	var feed atomFeed
 
-	if err := xml.Unmarshal(body, &feed); err != nil {
+	err := xml.Unmarshal(body, &feed)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse Atom feed: %w", err)
 	}
 

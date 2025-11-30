@@ -1,42 +1,63 @@
-linters-settings:
-  dupl:
-    threshold: 30
-  funlen:
-    lines: 100
-    statements: 30
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-  gocyclo:
-    min-complexity: 20
-  goimports:
-    local-prefixes: mynews
-  govet:
-    check-shadowing: true
-  lll:
-    line-length: 120
-  misspell:
-    locale: US
-  nakedret:
-    max-func-lines: 0
-  tagliatelle:
-    case:
-      rules:
-        json: goCamel
-
+version: "2"
 linters:
-  enable-all: true
+  default: all
   disable:
-    - gci # conflicts with gofumpt
-    - goimports # conflicts with gofumpt
     - depguard
-
-run:
-  timeout: 5m
+    - wsl
+  settings:
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2 
+    dupl:
+      threshold: 30
+    funlen:
+      lines: 100
+      statements: 30
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    gocyclo:
+      min-complexity: 20
+    lll:
+      line-length: 120
+    misspell:
+      locale: US
+    nakedret:
+      max-func-lines: 0
+    tagliatelle:
+      case:
+        rules:
+          json: goCamel
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+  settings:
+    goimports:
+      local-prefixes:
+        - mynews
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

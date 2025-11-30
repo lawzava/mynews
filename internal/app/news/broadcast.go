@@ -29,7 +29,8 @@ func (n News) broadcastFeed(briadcastClient broadcast.Broadcast, stories []parse
 			continue
 		}
 
-		if err = n.cfg.Store.PutKey(briadcastClient.Name(), storyID); err != nil {
+		err = n.cfg.Store.PutKey(briadcastClient.Name(), storyID)
+		if err != nil {
 			return fmt.Errorf("registering story as sent: %w", err)
 		}
 
@@ -38,7 +39,8 @@ func (n News) broadcastFeed(briadcastClient broadcast.Broadcast, stories []parse
 			URL:   story.Link,
 		}
 
-		if err = briadcastClient.Send(newBroadcastMessage); err != nil {
+		err = briadcastClient.Send(newBroadcastMessage)
+		if err != nil {
 			return fmt.Errorf("broadcasting story: %w", err)
 		}
 

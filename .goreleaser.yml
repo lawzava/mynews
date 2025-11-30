@@ -1,26 +1,31 @@
+version: 2
+
 project_name: mynews
+
 env:
   - GO111MODULE=on
+
 before:
   hooks:
     - go mod download
+
 builds:
- -
-  env:
-    - CGO_ENABLED=0
-  main: ./cmd/mynews/main.go
-  goos:
-    - linux
-    - darwin
-    - windows
-  goarch:
-    - 386
-    - amd64
-    - arm
-    - arm64
-  ignore:
-    - goos: darwin
-      goarch: 386
+  - env:
+      - CGO_ENABLED=0
+    main: ./cmd/mynews/main.go
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: "386"
+
 changelog:
   sort: asc
   filters:
@@ -29,5 +34,6 @@ changelog:
       - '^test:'
       - Merge pull request
       - Merge branch
+
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'

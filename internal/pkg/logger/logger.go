@@ -39,7 +39,7 @@ func (l Log) Fatal(msg string, err error) {
 	l.print(Error, msg, err)
 }
 
-func (l Log) print(logLevel Level, msg ...interface{}) {
+func (l Log) print(logLevel Level, msg ...any) {
 	if logLevel < l.logLevel {
 		return
 	}

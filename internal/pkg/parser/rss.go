@@ -23,7 +23,8 @@ type rssItem struct {
 func parseRSS(body []byte) ([]Item, error) {
 	var feed rssFeed
 
-	if err := xml.Unmarshal(body, &feed); err != nil {
+	err := xml.Unmarshal(body, &feed)
+	if err != nil {
 		return nil, errInvalidFeedType
 	}
 

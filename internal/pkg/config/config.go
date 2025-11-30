@@ -70,7 +70,8 @@ func New(log *logger.Log) (*Config, error) {
 	}
 
 	if createSample {
-		if err := createSampleFile(configFileLocation); err != nil {
+		err := createSampleFile(configFileLocation)
+		if err != nil {
 			return nil, fmt.Errorf("creating new sample config: %w", err)
 		}
 

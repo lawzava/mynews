@@ -6,6 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     command: mynews -config /etc/config.json
+    restart: always
     volumes:
       - type: bind
         source: ./config.json

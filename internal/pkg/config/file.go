@@ -45,7 +45,8 @@ type fileStructureSource struct {
 }
 
 func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config, error) {
-	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+	_, err := os.Stat(configFilePath)
+	if os.IsNotExist(err) {
 		log.Warn(fmt.Sprintf("File '%s' does not exist", configFilePath))
 
 		return nil, fmt.Errorf("file '%s' does not exist: %w", configFilePath, err)
@@ -61,14 +62,16 @@ func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config,
 	var file fileStructure
 
 	jsonParser := json.NewDecoder(configFile)
-	if err = jsonParser.Decode(&file); err != nil {
+
+	err = jsonParser.Decode(&file)
+	if err != nil {
 		return nil, fmt.Errorf("decoding config file (legacy): %w", err)
 	}
 
 	return file.toConfig(storageFilePath, log)
 }
 
-//nolint:cyclop // allow higher complexity on config setup for now
+//nolint:cyclop,funlen // allow higher complexity on config setup for now
 func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Config, error) {
 	var (
 		config Config
@@ -128,7 +131,8 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 		return &config, nil
 	}
 
-	if err = config.Store.RecoverFromFile(config.StorageFilePath, log, config.Apps[0].Broadcast.Name()); err != nil {
+	err = config.Store.RecoverFromFile(config.StorageFilePath, log, config.Apps[0].Broadcast.Name())
+	if err != nil {
 		return nil, fmt.Errorf("failed to recover data from file: %w", err)
 	}
 
@@ -136,7 +140,8 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 }
 
 func createSampleFile(filePath string) error {
-	if _, err := os.Stat(filePath); err != nil && os.IsExist(err) {
+	_, err := os.Stat(filePath)
+	if err != nil && os.IsExist(err) {
 		return nil
 	}
 
@@ -165,9 +170,9 @@ func createSampleFile(filePath string) error {
 	}
 
 	defaultFileStructure := fileStructure{
-		//nolint:gomnd // allow fore defaults
+		//nolint:mnd // allow fore defaults
 		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),
-		//nolint:gomnd // allow fore defaults
+		//nolint:mnd // allow fore defaults
 		SleepDurationBetweenBroadcasts: (time.Second * 10).String(),
 		StorageFilePath:                "",
 		Elements: []fileStructureElement{
@@ -187,7 +192,8 @@ func createSampleFile(filePath string) error {
 	jsonWriter := json.NewEncoder(file)
 	jsonWriter.SetIndent("", "	")
 
-	if err = jsonWriter.Encode(defaultFileStructure); err != nil {
+	err = jsonWriter.Encode(defaultFileStructure)
+	if err != nil {
 		return fmt.Errorf("writing sample config: %w", err)
 	}
 

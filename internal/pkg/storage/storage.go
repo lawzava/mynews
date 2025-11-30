@@ -57,6 +57,7 @@ func (s *Storage) KeyExists(app, key string) (bool, error) {
 
 func (s *Storage) CleanupBefore(app string, before time.Time) {
 	s.mux.Lock()
+
 	if s.store[app] == nil {
 		s.store[app] = make(map[string]time.Time)
 	}
@@ -71,7 +72,8 @@ func (s *Storage) CleanupBefore(app string, before time.Time) {
 }
 
 func (s *Storage) DumpToFile(filePath string) error {
-	if _, err := os.Stat(filePath); os.IsExist(err) {
+	_, err := os.Stat(filePath)
+	if os.IsExist(err) {
 		err = os.Remove(filePath)
 		if err != nil {
 			return fmt.Errorf("removing old dump file: %w", err)
@@ -85,7 +87,8 @@ func (s *Storage) DumpToFile(filePath string) error {
 
 	defer func() { _ = dataFile.Close() }()
 
-	if err = json.NewEncoder(dataFile).Encode(s.store); err != nil {
+	err = json.NewEncoder(dataFile).Encode(s.store)
+	if err != nil {
 		return fmt.Errorf("writing to data file: %w", err)
 	}
 
@@ -93,7 +96,8 @@ func (s *Storage) DumpToFile(filePath string) error {
 }
 
 func (s *Storage) RecoverFromFile(filePath string, log *logger.Log, legacyAppName string) error {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	_, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
 		log.Warn(fmt.Sprintf("File '%s' does not exist", filePath))
 
 		return nil
@@ -106,7 +110,7 @@ func (s *Storage) RecoverFromFile(filePath string, log *logger.Log, legacyAppNam
 
 	defer func() { _ = dataFile.Close() }()
 
-	var dataFileContents map[string]interface{}
+	var dataFileContents map[string]any
 
 	err = json.NewDecoder(dataFile).Decode(&dataFileContents)
 	if err != nil {
@@ -121,7 +125,7 @@ var (
 	ErrBadTimeValue  = errors.New("bad time value")
 )
 
-func (s *Storage) parseFileContents(fileContents map[string]interface{}, legacyAppName string) error {
+func (s *Storage) parseFileContents(fileContents map[string]any, legacyAppName string) error {
 	for key, value := range fileContents {
 		if val, ok := value.(string); ok {
 			if s.store[legacyAppName] == nil {
@@ -138,7 +142,7 @@ func (s *Storage) parseFileContents(fileContents map[string]interface{}, legacyA
 			continue
 		}
 
-		val, ok := value.(map[string]interface{})
+		val, ok := value.(map[string]any)
 		if !ok {
 			return ErrBadInputValue
 		}

@@ -24,7 +24,8 @@ func main() {
 
 	handleInterrupt(cfg, log)
 
-	if err = news.New(cfg).Run(log); err != nil {
+	err = news.New(cfg).Run(log)
+	if err != nil {
 		log.Fatal("failed running feed", err)
 	}
 }
@@ -36,7 +37,8 @@ func handleInterrupt(cfg *config.Config, log *logger.Log) {
 	go func() {
 		<-c
 
-		if err := cfg.Store.DumpToFile(cfg.StorageFilePath); err != nil {
+		err := cfg.Store.DumpToFile(cfg.StorageFilePath)
+		if err != nil {
 			log.Fatal("failed to dump storage file", err)
 		}
 

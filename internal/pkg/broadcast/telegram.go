@@ -23,11 +23,13 @@ func NewTelegramClient(botAPIToken, chatID string) (*Telegram, error) {
 		ChatID:      chatID,
 	}
 
-	if err := validate.RequiredString(client.BotAPIToken, "Telegram API Token"); err != nil {
+	err := validate.RequiredString(client.BotAPIToken, "Telegram API Token")
+	if err != nil {
 		return nil, fmt.Errorf("validating Telegram API Token: %w", err)
 	}
 
-	if err := validate.RequiredString(client.ChatID, "Telegram Chat ID"); err != nil {
+	err = validate.RequiredString(client.ChatID, "Telegram Chat ID")
+	if err != nil {
 		return nil, fmt.Errorf("validating Telegram Chat ID: %w", err)
 	}
 
@@ -85,7 +87,7 @@ func (t Telegram) Send(message Story) error {
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 
-	//nolint:exhaustivestruct,exhaustruct // no need to set any other fields
+	//nolint:exhaustruct // no need to set any other fields
 	client := &http.Client{}
 
 	resp, err := client.Do(req)
@@ -94,7 +96,8 @@ func (t Telegram) Send(message Story) error {
 	}
 
 	defer func() {
-		if err = resp.Body.Close(); err != nil {
+		err = resp.Body.Close()
+		if err != nil {
 			panic(err)
 		}
 	}()
@@ -109,7 +112,8 @@ func (t Telegram) Send(message Story) error {
 		Description string `json:"description"`
 	}
 
-	if err = json.Unmarshal(body, &telegramResponse); err != nil {
+	err = json.Unmarshal(body, &telegramResponse)
+	if err != nil {
 		return fmt.Errorf("unmarshaling response body: %w", err)
 	}
 

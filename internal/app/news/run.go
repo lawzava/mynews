@@ -24,7 +24,8 @@ func (n News) Run(log *logger.Log) error {
 					continue
 				}
 
-				if err = n.broadcastFeed(app.Broadcast, items, source); err != nil {
+				err = n.broadcastFeed(app.Broadcast, items, source)
+				if err != nil {
 					log.WarnErr(fmt.Sprintf("broadcasting items for source '%s'", source.URL), err)
 
 					sourceHadIssues = true

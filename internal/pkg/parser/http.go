@@ -11,7 +11,7 @@ import (
 var errBadResponseCode = errors.New("bad response code")
 
 func fromURL(url string) ([]byte, error) {
-	//nolint:exhaustivestruct,exhaustruct // no need to set any other fields
+	//nolint:exhaustruct // no need to set any other fields
 	client := http.Client{}
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, http.NoBody)

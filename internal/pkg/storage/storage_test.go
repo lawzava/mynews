@@ -2,9 +2,9 @@
 package storage_test
 
 import (
-	"fmt"
 	"math/rand"
 	"mynews/internal/pkg/storage"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -16,8 +16,8 @@ func TestStorage(t *testing.T) {
 
 	rGen := rand.New(rand.NewSource(time.Now().Unix()))
 
-	for i := 0; i < 1000; i++ {
-		randomKey := fmt.Sprint(rGen.Int())
+	for range 1000 {
+		randomKey := strconv.Itoa(rGen.Int())
 
 		exists, err := store.KeyExists("", randomKey)
 		if err != nil {
@@ -52,8 +52,8 @@ func TestStorageCleanup(t *testing.T) {
 
 	rGen := rand.New(rand.NewSource(time.Now().Unix()))
 
-	for i := 0; i < 1000; i++ {
-		randomKey := fmt.Sprint(rGen.Int())
+	for range 1000 {
+		randomKey := strconv.Itoa(rGen.Int())
 
 		cleanupBefore := time.Now()
 

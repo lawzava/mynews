@@ -38,7 +38,8 @@ func ParseUTC(timestampString string) (time.Time, error) {
 			return timestamp, fmt.Errorf("failed to parse time: %w", err)
 		}
 
-		if timestamp, err = time.ParseInLocation(format, timestampString, loc); err == nil {
+		timestamp, err = time.ParseInLocation(format, timestampString, loc)
+		if err == nil {
 			return timestamp, nil
 		}
 	}

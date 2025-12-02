@@ -9,6 +9,8 @@ parts:
   mynews:
     plugin: go
     source: .
+    build-snaps:
+      - go/latest/stable
 apps:
   mynews:
     environment:

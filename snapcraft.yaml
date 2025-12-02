@@ -3,6 +3,8 @@ version: '1.7.0'
 summary: Personalized news feed parser & broadcast
 description: Easily specify your RSS/Atom sources and broadcast preferences to get personalized news feed.
 base: core24
+confinement: strict
+grade: stable
 parts:
   mynews:
     plugin: go

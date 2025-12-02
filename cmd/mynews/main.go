@@ -22,24 +22,34 @@ func main() {
 		os.Exit(0)
 	}
 
-	handleInterrupt(cfg, log)
+	newsRunner, err := news.New(cfg, log)
+	if err != nil {
+		log.Fatal("initializing news runner failed", err)
+	}
 
-	err = news.New(cfg).Run(log)
+	handleInterrupt(cfg, &newsRunner, log)
+
+	err = newsRunner.Run(log)
 	if err != nil {
 		log.Fatal("failed running feed", err)
 	}
 }
 
-func handleInterrupt(cfg *config.Config, log *logger.Log) {
+func handleInterrupt(cfg *config.Config, newsRunner *news.News, log *logger.Log) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		<-c
 
-		err := cfg.Store.DumpToFile(cfg.StorageFilePath)
-		if err != nil {
-			log.Fatal("failed to dump storage file", err)
+		closeErr := newsRunner.Close()
+		if closeErr != nil {
+			log.WarnErr("failed to close news runner", closeErr)
+		}
+
+		dumpErr := cfg.Store.DumpToFile(cfg.StorageFilePath)
+		if dumpErr != nil {
+			log.Fatal("failed to dump storage file", dumpErr)
 		}
 
 		os.Exit(0)

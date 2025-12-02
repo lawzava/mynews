@@ -55,6 +55,9 @@ func (t Telegram) Send(message Story) error {
 		InlineKeyboard [][]inlineKeyboard `json:"inline_keyboard"`
 	}
 
+	// Build message text with optional score
+	text := buildTelegramText(message)
+
 	//nolint:tagliatelle // required structure for telegram requests
 	telegramMessage := struct {
 		ChatID      string      `json:"chat_id"`
@@ -64,12 +67,7 @@ func (t Telegram) Send(message Story) error {
 	}{
 		ChatID:    t.ChatID,
 		ParseMode: "MarkdownV2",
-		Text: fmt.Sprintf(`*%s* 
-
-%s`, // empty line is intended
-			escapeTelegramText(message.Title),
-			escapeTelegramText(message.URL),
-		),
+		Text:      text,
 		ReplyMarkup: replyMarkup{
 			InlineKeyboard: [][]inlineKeyboard{
 				{{Text: "Read", URL: message.URL, SwitchInlineQuery: ""}},
@@ -122,6 +120,28 @@ func (t Telegram) Send(message Story) error {
 	}
 
 	return nil
+}
+
+const scoreMultiplier = 100
+
+func buildTelegramText(message Story) string {
+	if message.Score > 0 {
+		return fmt.Sprintf(`*%s*
+📊 Score: %.0f%%
+
+%s`, // empty line is intended
+			escapeTelegramText(message.Title),
+			message.Score*scoreMultiplier,
+			escapeTelegramText(message.URL),
+		)
+	}
+
+	return fmt.Sprintf(`*%s*
+
+%s`, // empty line is intended
+		escapeTelegramText(message.Title),
+		escapeTelegramText(message.URL),
+	)
 }
 
 func escapeTelegramText(text string) string {

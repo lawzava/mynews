@@ -6,8 +6,10 @@ type Config struct {
 }
 
 type Story struct {
-	Title string `json:"title"`
-	URL   string `json:"url"`
+	Title  string  `json:"title"`
+	URL    string  `json:"url"`
+	Score  float64 `json:"score,omitempty"`
+	Reason string  `json:"scoreReason,omitempty"`
 }
 
 type Broadcast interface {

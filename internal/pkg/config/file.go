@@ -18,6 +18,8 @@ type fileStructure struct {
 
 	Elements []fileStructureElement `json:"apps"`
 
+	Scoring *fileStructureScoring `json:"scoring,omitempty"`
+
 	// Used for backwards compatibility reasons
 	// Deprecated: will be removed in v2
 
@@ -26,6 +28,14 @@ type fileStructure struct {
 	LegacyTelegramChatID      string `json:"telegramChatID"`
 
 	LegacySources []fileStructureSource `json:"sources"`
+}
+
+type fileStructureScoring struct {
+	Enabled   bool     `json:"enabled"`
+	Provider  string   `json:"provider"`  // "embedding" or "keyword"
+	Interests []string `json:"interests"` // Topics to score stories against
+	ModelName string   `json:"modelName,omitempty"`
+	ModelDir  string   `json:"modelDir,omitempty"`
 }
 
 type fileStructureElement struct {
@@ -136,6 +146,17 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 		return nil, fmt.Errorf("failed to recover data from file: %w", err)
 	}
 
+	// Parse scoring config
+	if f.Scoring != nil && f.Scoring.Enabled {
+		config.Scoring = &ScoringConfig{
+			Enabled:   f.Scoring.Enabled,
+			Provider:  f.Scoring.Provider,
+			Interests: f.Scoring.Interests,
+			ModelName: f.Scoring.ModelName,
+			ModelDir:  f.Scoring.ModelDir,
+		}
+	}
+
 	return &config, nil
 }
 
@@ -182,6 +203,17 @@ func createSampleFile(filePath string) error {
 				TelegramBotAPIToken: "",
 				TelegramChatID:      "",
 			},
+		},
+		Scoring: &fileStructureScoring{
+			Enabled:  false,
+			Provider: "embedding",
+			Interests: []string{
+				"artificial intelligence and machine learning",
+				"geopolitical conflicts and international relations",
+				"stock market and financial technology",
+			},
+			ModelName: "",
+			ModelDir:  "",
 		},
 		LegacyBroadcastType:       "",
 		LegacyTelegramBotAPIToken: "",

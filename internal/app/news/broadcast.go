@@ -1,18 +1,27 @@
 package news
 
 import (
+	"context"
 	//nolint:gosec // md5 used for key generation, nothing sensitive
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/config"
+	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/parser"
 	"strings"
 	"time"
 )
 
-func (n News) broadcastFeed(briadcastClient broadcast.Broadcast, stories []parser.Item, source *config.Source) error {
+const scoringTimeout = 30 * time.Second
+
+func (n News) broadcastFeed(
+	briadcastClient broadcast.Broadcast,
+	stories []parser.Item,
+	source *config.Source,
+	log *logger.Log,
+) error {
 	for _, story := range stories {
 		if !storyMatchesConfig(story, source) {
 			continue
@@ -35,8 +44,25 @@ func (n News) broadcastFeed(briadcastClient broadcast.Broadcast, stories []parse
 		}
 
 		newBroadcastMessage := broadcast.Story{
-			Title: story.Title,
-			URL:   story.Link,
+			Title:  story.Title,
+			URL:    story.Link,
+			Score:  0,
+			Reason: "",
+		}
+
+		// Score the story if scoring is enabled
+		if n.scorer != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), scoringTimeout)
+			score, scoreErr := n.scorer.Score(ctx, story.Title)
+
+			cancel()
+
+			if scoreErr != nil {
+				log.WarnErr("scoring story", scoreErr)
+			} else {
+				newBroadcastMessage.Score = score.Value
+				newBroadcastMessage.Reason = score.Reason
+			}
 		}
 
 		err = briadcastClient.Send(newBroadcastMessage)

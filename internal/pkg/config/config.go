@@ -29,6 +29,16 @@ type Config struct {
 	StorageFilePath string
 
 	Apps []App
+
+	Scoring *ScoringConfig
+}
+
+type ScoringConfig struct {
+	Enabled   bool
+	Provider  string   // "embedding" or "keyword"
+	Interests []string // Topics to score stories against
+	ModelName string   // HuggingFace model name (for embedding provider)
+	ModelDir  string   // Directory to cache models
 }
 
 type App struct {

@@ -126,12 +126,13 @@ const scoreMultiplier = 100
 
 func buildTelegramText(message Story) string {
 	if message.Score > 0 {
-		return fmt.Sprintf(`*%s*
-📊 Score: %.0f%%
+		return fmt.Sprintf(`📊 Relevance Score: %.0f%%
+
+*%s*
 
 %s`, // empty line is intended
-			escapeTelegramText(message.Title),
 			message.Score*scoreMultiplier,
+			escapeTelegramText(message.Title),
 			escapeTelegramText(message.URL),
 		)
 	}

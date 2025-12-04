@@ -126,8 +126,9 @@ func (e *EmbeddingScorer) Score(ctx context.Context, title string) (Score, error
 	}
 
 	return Score{
-		Value:  normalizedScore,
-		Reason: bestMatch,
+		Value:         normalizedScore,
+		Reason:        bestMatch,
+		ContentSource: "", // Set by caller based on extraction result
 	}, nil
 }
 

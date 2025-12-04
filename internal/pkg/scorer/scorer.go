@@ -11,15 +11,16 @@ const (
 
 // Score represents the AI scoring result for a story.
 type Score struct {
-	Value  float64 // 0.0 to 1.0 (normalized relevance score)
-	Reason string  // Brief explanation of the score
+	Value         float64 // 0.0 to 1.0 (normalized relevance score)
+	Reason        string  // Brief explanation of the score
+	ContentSource string  // Where the scored text came from: "article", "og:description", or "title"
 }
 
 // Scorer evaluates story relevance based on user interests.
 type Scorer interface {
-	// Score evaluates a story title against configured interests.
+	// Score evaluates text (article content, OG description, or title) against configured interests.
 	// Returns a Score with Value between 0.0 and 1.0.
-	Score(ctx context.Context, title string) (Score, error)
+	Score(ctx context.Context, text string) (Score, error)
 
 	// Name returns the scorer identifier (e.g., "embedding", "keyword").
 	Name() string

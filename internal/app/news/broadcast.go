@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/config"
+	"mynews/internal/pkg/extractor"
 	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/parser"
 	"strings"
@@ -44,16 +45,29 @@ func (n News) broadcastFeed(
 		}
 
 		newBroadcastMessage := broadcast.Story{
-			Title:  story.Title,
-			URL:    story.Link,
-			Score:  0,
-			Reason: "",
+			Title:         story.Title,
+			URL:           story.Link,
+			Score:         0,
+			Reason:        "",
+			ContentSource: "",
 		}
 
 		// Score the story if scoring is enabled
 		if n.scorer != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), scoringTimeout)
-			score, scoreErr := n.scorer.Score(ctx, story.Title)
+
+			// Try to extract article content for better scoring
+			textToScore := story.Title
+			contentSource := extractor.SourceTitle
+
+			extracted, extractErr := extractor.Extract(ctx, story.Link)
+			if extractErr != nil {
+				log.WarnErr("extracting content for scoring", extractErr)
+			} else {
+				textToScore, contentSource = extracted.GetBestText(story.Title)
+			}
+
+			score, scoreErr := n.scorer.Score(ctx, textToScore)
 
 			cancel()
 
@@ -62,6 +76,7 @@ func (n News) broadcastFeed(
 			} else {
 				newBroadcastMessage.Score = score.Value
 				newBroadcastMessage.Reason = score.Reason
+				newBroadcastMessage.ContentSource = string(contentSource)
 			}
 		}
 

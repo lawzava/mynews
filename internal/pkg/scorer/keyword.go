@@ -53,8 +53,9 @@ func (k *KeywordScorer) Score(_ context.Context, title string) (Score, error) {
 	}
 
 	return Score{
-		Value:  maxScore,
-		Reason: bestMatch,
+		Value:         maxScore,
+		Reason:        bestMatch,
+		ContentSource: "", // Set by caller based on extraction result
 	}, nil
 }
 

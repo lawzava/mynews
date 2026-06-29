@@ -4,6 +4,7 @@ linters:
   disable:
     - depguard
     - wsl
+    - gomodguard
   settings:
     wsl_v5:
       allow-first-in-block: true

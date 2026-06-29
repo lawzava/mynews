@@ -43,7 +43,7 @@ func (n News) broadcastFeed(
 			continue
 		}
 
-		scored := n.scoreStory(ctx, story.Title, log)
+		scored := n.scoreStory(ctx, source, story.Title, log)
 
 		if !scored.passes {
 			// Below the relevance threshold: record as seen so it is not
@@ -93,15 +93,20 @@ type scoredStory struct {
 // scoreStory scores a title against the configured interests and reports whether
 // it clears the relevance threshold. When scoring is disabled or errors, the story
 // passes (value 0) so it is never silently dropped on a scorer failure.
-func (n News) scoreStory(ctx context.Context, title string, log *logger.Log) scoredStory {
-	if n.scorer == nil {
+func (n News) scoreStory(ctx context.Context, source *config.Source, title string, log *logger.Log) scoredStory {
+	activeScorer := n.scorer
+	if sourceScorer, ok := n.sourceScorers[source]; ok {
+		activeScorer = sourceScorer
+	}
+
+	if activeScorer == nil {
 		return scoredStory{value: 0, reason: "", passes: true}
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, scoringTimeout)
 	defer cancel()
 
-	score, err := n.scorer.Score(ctx, title)
+	score, err := activeScorer.Score(ctx, title)
 	if err != nil {
 		log.WarnErr("scoring story", err)
 

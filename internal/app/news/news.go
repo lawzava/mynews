@@ -11,17 +11,19 @@ import (
 
 // News handles RSS feed parsing and broadcasting.
 type News struct {
-	cfg     *config.Config
-	scorer  scorer.Scorer
-	metrics *metrics.Metrics
+	cfg           *config.Config
+	scorer        scorer.Scorer
+	sourceScorers map[*config.Source]scorer.Scorer
+	metrics       *metrics.Metrics
 }
 
 // New creates a new News instance with optional scoring.
 func New(cfg *config.Config, met *metrics.Metrics, log *logger.Log) (News, error) {
 	newsInstance := News{
-		cfg:     cfg,
-		scorer:  nil,
-		metrics: met,
+		cfg:           cfg,
+		scorer:        nil,
+		sourceScorers: nil,
+		metrics:       met,
 	}
 
 	if cfg.Scoring != nil && cfg.Scoring.Enabled {
@@ -45,6 +47,25 @@ func New(cfg *config.Config, met *metrics.Metrics, log *logger.Log) (News, error
 		newsInstance.scorer = storyScorer
 
 		log.Info(fmt.Sprintf("Scorer initialized successfully (provider: %s)", storyScorer.Name()))
+
+		// Derive a dedicated scorer for each source that overrides the global
+		// interest list, reusing the already-loaded model.
+		newsInstance.sourceScorers = make(map[*config.Source]scorer.Scorer)
+
+		for _, app := range cfg.Apps {
+			for _, source := range app.Sources {
+				if len(source.Interests) == 0 {
+					continue
+				}
+
+				derived, derr := storyScorer.Derive(source.Interests)
+				if derr != nil {
+					return News{}, fmt.Errorf("deriving scorer for source %q: %w", source.URL, derr)
+				}
+
+				newsInstance.sourceScorers[source] = derived
+			}
+		}
 	}
 
 	return newsInstance, nil

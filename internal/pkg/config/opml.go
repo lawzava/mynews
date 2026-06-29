@@ -70,6 +70,7 @@ func importOPMLFile(opmlPath, configPath string, log *logger.Log) error {
 			MustIncludeAnyOf:    nil,
 			MustExcludeAnyOf:    nil,
 			StatusPage:          false,
+			Interests:           nil,
 		}
 	}
 

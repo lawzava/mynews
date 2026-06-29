@@ -98,6 +98,27 @@ func (scorer *EmbeddingScorer) Name() string {
 	return ProviderEmbedding
 }
 
+// Derive returns a scorer for the given interests, reusing the loaded model.
+//
+//nolint:ireturn // satisfies the Scorer factory contract
+func (scorer *EmbeddingScorer) Derive(interests []string) (Scorer, error) {
+	if len(interests) == 0 {
+		return scorer, nil
+	}
+
+	derived := &EmbeddingScorer{
+		model:              scorer.model,
+		interestTexts:      interests,
+		interestEmbeddings: make([][]float32, len(interests)),
+	}
+
+	for interestIdx, interest := range interests {
+		derived.interestEmbeddings[interestIdx] = scorer.model.encode(interest)
+	}
+
+	return derived, nil
+}
+
 // Close releases model resources.
 func (scorer *EmbeddingScorer) Close() error {
 	return nil

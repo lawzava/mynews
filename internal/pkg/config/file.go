@@ -64,6 +64,7 @@ type fileStructureSource struct {
 	MustIncludeAnyOf    []string `json:"mustIncludeAnyOf"`
 	MustExcludeAnyOf    []string `json:"mustExcludeAnyOf"`
 	StatusPage          bool     `json:"statusPage"`
+	Interests           []string `json:"interests,omitempty"`
 }
 
 func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config, error) {
@@ -189,6 +190,7 @@ func createSampleFile(filePath string) error {
 			MustIncludeAnyOf:    []string{"linux", "golang", "musk"},
 			MustExcludeAnyOf:    []string{"windows", "trump", "apple"},
 			StatusPage:          false,
+			Interests:           nil,
 		},
 		{
 			URL:                 sampleFeedURL,
@@ -196,6 +198,7 @@ func createSampleFile(filePath string) error {
 			MustIncludeAnyOf:    nil,
 			MustExcludeAnyOf:    nil,
 			StatusPage:          false,
+			Interests:           nil,
 		},
 	}
 
@@ -283,6 +286,7 @@ func (fe *fileStructureElement) prepareConfigElement(log *logger.Log) (App, erro
 			MustIncludeKeywords: fe.Sources[sourceIdx].MustIncludeAnyOf,
 			MustExcludeKeywords: fe.Sources[sourceIdx].MustExcludeAnyOf,
 			StatusPage:          fe.Sources[sourceIdx].StatusPage,
+			Interests:           fe.Sources[sourceIdx].Interests,
 		}
 
 		cfg.Sources[sourceIdx].IgnoreStoriesBefore, err = time.Parse(time.RFC3339, fe.Sources[sourceIdx].IgnoreStoriesBefore)

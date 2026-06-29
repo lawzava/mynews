@@ -18,7 +18,8 @@ type Source struct {
 	IgnoreStoriesBefore time.Time
 	MustIncludeKeywords []string
 	MustExcludeKeywords []string
-	StatusPage          bool // used when links in feed does not change but timestamp changes
+	StatusPage          bool     // used when links in feed does not change but timestamp changes
+	Interests           []string // per-source scoring interests; falls back to the global list
 }
 
 type Config struct {

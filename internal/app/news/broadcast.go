@@ -2,6 +2,9 @@ package news
 
 import (
 	"context"
+	"html"
+	"regexp"
+
 	//nolint:gosec // md5 used for key generation, nothing sensitive
 	"crypto/md5"
 	"encoding/hex"
@@ -23,7 +26,7 @@ func (n News) broadcastFeed(
 	log *logger.Log,
 ) error {
 	for _, story := range stories {
-		if !storyMatchesConfig(story, source) {
+		if !storyMatchesConfig(&story, source) {
 			continue
 		}
 
@@ -52,10 +55,11 @@ func (n News) broadcastFeed(
 		}
 
 		newBroadcastMessage := broadcast.Story{
-			Title:  story.Title,
-			URL:    story.Link,
-			Score:  scored.value,
-			Reason: scored.reason,
+			Title:   story.Title,
+			URL:     story.Link,
+			Summary: cleanSummary(story.Description),
+			Score:   scored.value,
+			Reason:  scored.reason,
 		}
 
 		err = broadcastClient.Send(newBroadcastMessage)
@@ -107,7 +111,30 @@ func (n News) scoreStory(title string, log *logger.Log) scoredStory {
 	}
 }
 
-func storyMatchesConfig(story parser.Item, source *config.Source) bool {
+const maxSummaryLen = 280
+
+var htmlTagRe = regexp.MustCompile(`<[^>]*>`)
+
+// cleanSummary strips HTML tags and entities from a feed description, collapses
+// whitespace, and truncates to a short single-line snippet for broadcasting.
+func cleanSummary(raw string) string {
+	if raw == "" {
+		return ""
+	}
+
+	text := htmlTagRe.ReplaceAllString(raw, " ")
+	text = html.UnescapeString(text)
+	text = strings.Join(strings.Fields(text), " ")
+
+	runes := []rune(text)
+	if len(runes) > maxSummaryLen {
+		text = strings.TrimSpace(string(runes[:maxSummaryLen])) + "…"
+	}
+
+	return text
+}
+
+func storyMatchesConfig(story *parser.Item, source *config.Source) bool {
 	if story.PublishedAtParsed.IsZero() {
 		return false
 	}

@@ -133,23 +133,19 @@ func (t Telegram) Send(message Story) error {
 const scoreMultiplier = 100
 
 func buildTelegramText(message Story) string {
-	if message.Score > 0 {
-		return fmt.Sprintf(`*%s*
-📊 Score: %.0f%%
+	text := "*" + escapeTelegramText(message.Title) + "*\n"
 
-%s`, // empty line is intended
-			escapeTelegramText(message.Title),
-			message.Score*scoreMultiplier,
-			escapeTelegramText(message.URL),
-		)
+	if message.Score > 0 {
+		text += fmt.Sprintf("📊 Score: %.0f%%\n", message.Score*scoreMultiplier)
 	}
 
-	return fmt.Sprintf(`*%s*
+	if message.Summary != "" {
+		text += "\n" + escapeTelegramText(message.Summary) + "\n"
+	}
 
-%s`, // empty line is intended
-		escapeTelegramText(message.Title),
-		escapeTelegramText(message.URL),
-	)
+	text += "\n" + escapeTelegramText(message.URL)
+
+	return text
 }
 
 func escapeTelegramText(text string) string {

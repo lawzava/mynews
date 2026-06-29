@@ -9,6 +9,7 @@ import (
 type Item struct {
 	Title             string
 	Link              string
+	Description       string
 	PublishedAt       string
 	PublishedAtParsed time.Time
 }

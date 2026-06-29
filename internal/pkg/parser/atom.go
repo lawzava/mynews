@@ -16,6 +16,17 @@ type atomItem struct {
 	Title   string   `xml:"title"`
 	Updated string   `xml:"updated"`
 	Link    atomLink `xml:"link"`
+	Summary string   `xml:"summary"`
+	Content string   `xml:"content"`
+}
+
+// description returns the entry summary, falling back to its content body.
+func (a *atomItem) description() string {
+	if a.Summary != "" {
+		return a.Summary
+	}
+
+	return a.Content
 }
 
 type atomLink struct {
@@ -36,6 +47,7 @@ func parseAtom(body []byte) ([]Item, error) {
 		items[itemIdx] = Item{
 			Title:             feed.Items[itemIdx].Title,
 			Link:              feed.Items[itemIdx].Link.Href,
+			Description:       feed.Items[itemIdx].description(),
 			PublishedAt:       feed.Items[itemIdx].Updated,
 			PublishedAtParsed: time.Time{},
 		}

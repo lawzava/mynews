@@ -15,9 +15,10 @@ type rssFeed struct {
 }
 
 type rssItem struct {
-	Title   string `xml:"title"`
-	Link    string `xml:"link"`
-	PubDate string `xml:"pubDate"`
+	Title       string `xml:"title"`
+	Link        string `xml:"link"`
+	Description string `xml:"description"`
+	PubDate     string `xml:"pubDate"`
 }
 
 func parseRSS(body []byte) ([]Item, error) {
@@ -34,6 +35,7 @@ func parseRSS(body []byte) ([]Item, error) {
 		items[itemIdx] = Item{
 			Title:             feed.Items[itemIdx].Title,
 			Link:              feed.Items[itemIdx].Link,
+			Description:       feed.Items[itemIdx].Description,
 			PublishedAt:       feed.Items[itemIdx].PubDate,
 			PublishedAtParsed: time.Time{},
 		}

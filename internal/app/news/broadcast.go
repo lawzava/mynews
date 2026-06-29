@@ -3,6 +3,7 @@ package news
 import (
 	"context"
 	"html"
+	"net/url"
 	"regexp"
 
 	//nolint:gosec // md5 used for key generation, nothing sensitive
@@ -178,6 +179,8 @@ func includesKeywords(target string, keywords []string) bool {
 }
 
 func buildStoryID(published, link string, statusPage bool) string {
+	link = normalizeURL(link)
+
 	hash := md5.New() //nolint:gosec // speed is higher concern than security in this use case
 
 	if statusPage {
@@ -187,4 +190,40 @@ func buildStoryID(published, link string, statusPage bool) string {
 	}
 
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+// trackingParams are query parameters that identify a referral, not the content,
+// so the same article shared via different sources dedups to one story.
+//
+//nolint:gochecknoglobals // read-only lookup table
+var trackingParams = map[string]bool{
+	"fbclid": true, "gclid": true, "msclkid": true, "igshid": true,
+	"mc_cid": true, "mc_eid": true, "ref": true, "ref_src": true,
+	"source": true, "cmpid": true, "spm": true,
+}
+
+// normalizeURL lower-cases the host and strips the fragment and tracking query
+// parameters so cosmetically different links to the same article collide.
+func normalizeURL(raw string) string {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return raw
+	}
+
+	parsed.Host = strings.ToLower(parsed.Host)
+	parsed.Fragment = ""
+
+	if parsed.RawQuery != "" {
+		query := parsed.Query()
+		for key := range query {
+			lowered := strings.ToLower(key)
+			if strings.HasPrefix(lowered, "utm_") || trackingParams[lowered] {
+				query.Del(key)
+			}
+		}
+
+		parsed.RawQuery = query.Encode()
+	}
+
+	return parsed.String()
 }

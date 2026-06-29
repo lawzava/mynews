@@ -7,6 +7,7 @@ import (
 	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/storage"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -45,6 +46,9 @@ type fileStructureElement struct {
 	BroadcastType       string `json:"broadcastType"`
 	TelegramBotAPIToken string `json:"telegramBotAPIToken"`
 	TelegramChatID      string `json:"telegramChatID"`
+	DiscordWebhookURL   string `json:"discordWebhookURL,omitempty"`
+	SlackWebhookURL     string `json:"slackWebhookURL,omitempty"`
+	WebhookURL          string `json:"webhookURL,omitempty"`
 
 	Sources []fileStructureSource `json:"sources"`
 }
@@ -129,6 +133,9 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 			BroadcastType:       f.LegacyBroadcastType,
 			TelegramBotAPIToken: f.LegacyTelegramBotAPIToken,
 			TelegramChatID:      f.LegacyTelegramChatID,
+			DiscordWebhookURL:   "",
+			SlackWebhookURL:     "",
+			WebhookURL:          "",
 			Sources:             f.LegacySources,
 		})
 	}
@@ -214,6 +221,9 @@ func createSampleFile(filePath string) error {
 				Sources:             sources,
 				TelegramBotAPIToken: "",
 				TelegramChatID:      "",
+				DiscordWebhookURL:   "",
+				SlackWebhookURL:     "",
+				WebhookURL:          "",
 			},
 		},
 		Scoring: &fileStructureScoring{
@@ -245,7 +255,7 @@ func createSampleFile(filePath string) error {
 	return nil
 }
 
-func (fe fileStructureElement) prepareConfigElement(log *logger.Log) (App, error) {
+func (fe *fileStructureElement) prepareConfigElement(log *logger.Log) (App, error) {
 	var (
 		cfg App
 		err error
@@ -274,16 +284,40 @@ func (fe fileStructureElement) prepareConfigElement(log *logger.Log) (App, error
 		}
 	}
 
-	cfg.Broadcast = broadcast.NewStdOutClient()
-
-	if fe.BroadcastType == "TELEGRAM" {
-		telegramClient, err := broadcast.NewTelegramClient(fe.TelegramBotAPIToken, fe.TelegramChatID)
-		if err != nil {
-			return App{}, fmt.Errorf("failed to create telegram client: %w", err)
-		}
-
-		cfg.Broadcast = telegramClient
+	cfg.Broadcast, err = fe.broadcastClient()
+	if err != nil {
+		return App{}, fmt.Errorf("failed to create broadcast client: %w", err)
 	}
 
 	return cfg, nil
+}
+
+// broadcastClient builds the broadcast target for an element. The type is matched
+// case-insensitively; an unknown or empty type falls back to stdout.
+//
+//nolint:ireturn // factory deliberately returns the Broadcast impl selected by type
+func (fe *fileStructureElement) broadcastClient() (broadcast.Broadcast, error) {
+	var (
+		client broadcast.Broadcast
+		err    error
+	)
+
+	switch strings.ToLower(fe.BroadcastType) {
+	case "telegram":
+		client, err = broadcast.NewTelegramClient(fe.TelegramBotAPIToken, fe.TelegramChatID)
+	case "discord":
+		client, err = broadcast.NewDiscordClient(fe.DiscordWebhookURL)
+	case "slack":
+		client, err = broadcast.NewSlackClient(fe.SlackWebhookURL)
+	case "webhook":
+		client, err = broadcast.NewWebhookClient(fe.WebhookURL)
+	default:
+		return broadcast.NewStdOutClient(), nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("creating %q broadcast client: %w", fe.BroadcastType, err)
+	}
+
+	return client, nil
 }

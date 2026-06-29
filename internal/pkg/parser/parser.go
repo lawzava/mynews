@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -16,8 +17,8 @@ type Item struct {
 
 var errInvalidFeedType = errors.New("invalid feed type")
 
-func ParseURL(url string) ([]Item, error) {
-	body, err := fromURL(url)
+func ParseURL(ctx context.Context, url string) ([]Item, error) {
+	body, err := fromURL(ctx, url)
 	if err != nil {
 		return nil, fmt.Errorf("parsing from url: %w", err)
 	}

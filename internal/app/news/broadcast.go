@@ -20,6 +20,7 @@ import (
 const scoringTimeout = 30 * time.Second
 
 func (n News) broadcastFeed(
+	ctx context.Context,
 	broadcastClient broadcast.Broadcast,
 	stories []parser.Item,
 	source *config.Source,
@@ -41,7 +42,7 @@ func (n News) broadcastFeed(
 			continue
 		}
 
-		scored := n.scoreStory(story.Title, log)
+		scored := n.scoreStory(ctx, story.Title, log)
 
 		if !scored.passes {
 			// Below the relevance threshold: record as seen so it is not
@@ -74,7 +75,9 @@ func (n News) broadcastFeed(
 			return fmt.Errorf("registering story as sent: %w", err)
 		}
 
-		time.Sleep(n.cfg.SleepDurationBetweenBroadcasts)
+		if !sleep(ctx, n.cfg.SleepDurationBetweenBroadcasts) {
+			return nil
+		}
 	}
 
 	return nil
@@ -89,12 +92,12 @@ type scoredStory struct {
 // scoreStory scores a title against the configured interests and reports whether
 // it clears the relevance threshold. When scoring is disabled or errors, the story
 // passes (value 0) so it is never silently dropped on a scorer failure.
-func (n News) scoreStory(title string, log *logger.Log) scoredStory {
+func (n News) scoreStory(ctx context.Context, title string, log *logger.Log) scoredStory {
 	if n.scorer == nil {
 		return scoredStory{value: 0, reason: "", passes: true}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), scoringTimeout)
+	ctx, cancel := context.WithTimeout(ctx, scoringTimeout)
 	defer cancel()
 
 	score, err := n.scorer.Score(ctx, title)

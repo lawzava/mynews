@@ -19,11 +19,11 @@ var (
 	errFeedTooLarge    = errors.New("feed response exceeds size limit")
 )
 
-func fromURL(url string) ([]byte, error) {
+func fromURL(ctx context.Context, url string) ([]byte, error) {
 	//nolint:exhaustruct // no need to set any other fields
 	client := http.Client{Timeout: httpTimeout}
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build http request: %w", err)
 	}

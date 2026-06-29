@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"mynews/internal/app/news"
 	"mynews/internal/pkg/config"
 	"mynews/internal/pkg/logger"
@@ -27,31 +28,29 @@ func main() {
 		log.Fatal("initializing news runner failed", err)
 	}
 
-	handleInterrupt(cfg, &newsRunner, log)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
-	err = newsRunner.Run(log)
-	if err != nil {
-		log.Fatal("failed running feed", err)
+	runErr := newsRunner.Run(ctx, log)
+
+	stop() // restore default signal handling while we shut down
+
+	shutdown(cfg, &newsRunner, log)
+
+	if runErr != nil {
+		log.Fatal("failed running feed", runErr)
 	}
 }
 
-func handleInterrupt(cfg *config.Config, newsRunner *news.News, log *logger.Log) {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+// shutdown releases runner resources and persists the dedup store. It runs after
+// Run has returned, so no goroutine is mutating the store during the dump.
+func shutdown(cfg *config.Config, newsRunner *news.News, log *logger.Log) {
+	closeErr := newsRunner.Close()
+	if closeErr != nil {
+		log.WarnErr("failed to close news runner", closeErr)
+	}
 
-	go func() {
-		<-c
-
-		closeErr := newsRunner.Close()
-		if closeErr != nil {
-			log.WarnErr("failed to close news runner", closeErr)
-		}
-
-		dumpErr := cfg.Store.DumpToFile(cfg.StorageFilePath)
-		if dumpErr != nil {
-			log.Fatal("failed to dump storage file", dumpErr)
-		}
-
-		os.Exit(0)
-	}()
+	dumpErr := cfg.Store.DumpToFile(cfg.StorageFilePath)
+	if dumpErr != nil {
+		log.Fatal("failed to dump storage file", dumpErr)
+	}
 }

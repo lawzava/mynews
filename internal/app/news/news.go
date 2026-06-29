@@ -29,7 +29,7 @@ func New(cfg *config.Config, log *logger.Log) (News, error) {
 
 		log.Info(fmt.Sprintf("Initializing %s scorer with %d interests...", cfg.Scoring.Provider, len(cfg.Scoring.Interests)))
 
-		embeddingScorer, keywordScorer, err := scorer.NewScorer(scorer.Config{
+		storyScorer, err := scorer.NewScorer(scorer.Config{
 			Provider:  cfg.Scoring.Provider,
 			Interests: cfg.Scoring.Interests,
 			ModelDir:  modelDir,
@@ -39,13 +39,9 @@ func New(cfg *config.Config, log *logger.Log) (News, error) {
 			return News{}, fmt.Errorf("failed to initialize scorer: %w", err)
 		}
 
-		if embeddingScorer != nil {
-			newsInstance.scorer = embeddingScorer
-			log.Info(fmt.Sprintf("Scorer initialized successfully (provider: %s)", embeddingScorer.Name()))
-		} else if keywordScorer != nil {
-			newsInstance.scorer = keywordScorer
-			log.Info(fmt.Sprintf("Scorer initialized successfully (provider: %s)", keywordScorer.Name()))
-		}
+		newsInstance.scorer = storyScorer
+
+		log.Info(fmt.Sprintf("Scorer initialized successfully (provider: %s)", storyScorer.Name()))
 	}
 
 	return newsInstance, nil

@@ -45,15 +45,23 @@ type Config struct {
 }
 
 // NewScorer creates a scorer based on configuration.
-func NewScorer(cfg Config) (*EmbeddingScorer, *KeywordScorer, error) {
+//
+//nolint:ireturn // factory deliberately returns the Scorer impl selected by provider
+func NewScorer(cfg Config) (Scorer, error) {
 	switch cfg.Provider {
 	case ProviderKeyword:
 		keywordScorer, err := NewKeywordScorer(cfg)
+		if err != nil {
+			return nil, err
+		}
 
-		return nil, keywordScorer, err
+		return keywordScorer, nil
 	default:
 		embeddingScorer, err := NewEmbeddingScorer(cfg)
+		if err != nil {
+			return nil, err
+		}
 
-		return embeddingScorer, nil, err
+		return embeddingScorer, nil
 	}
 }

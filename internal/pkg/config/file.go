@@ -38,6 +38,7 @@ type fileStructureScoring struct {
 	Interests []string `json:"interests"` // Topics to score stories against
 	ModelName string   `json:"modelName,omitempty"`
 	ModelDir  string   `json:"modelDir,omitempty"`
+	MinScore  float64  `json:"minScore,omitempty"` // Stories scoring below this (0-1) are dropped
 }
 
 type fileStructureElement struct {
@@ -160,6 +161,7 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 			Interests: f.Scoring.Interests,
 			ModelName: f.Scoring.ModelName,
 			ModelDir:  f.Scoring.ModelDir,
+			MinScore:  f.Scoring.MinScore,
 		}
 	}
 
@@ -224,6 +226,7 @@ func createSampleFile(filePath string) error {
 			},
 			ModelName: "",
 			ModelDir:  "",
+			MinScore:  0,
 		},
 		LegacyBroadcastType:       "",
 		LegacyTelegramBotAPIToken: "",

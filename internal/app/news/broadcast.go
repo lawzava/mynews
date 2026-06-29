@@ -38,26 +38,24 @@ func (n News) broadcastFeed(
 			continue
 		}
 
+		scored := n.scoreStory(story.Title, log)
+
+		if !scored.passes {
+			// Below the relevance threshold: record as seen so it is not
+			// re-scored every cycle, but do not broadcast it.
+			err = n.cfg.Store.PutKey(broadcastClient.Name(), storyID)
+			if err != nil {
+				return fmt.Errorf("registering story as sent: %w", err)
+			}
+
+			continue
+		}
+
 		newBroadcastMessage := broadcast.Story{
 			Title:  story.Title,
 			URL:    story.Link,
-			Score:  0,
-			Reason: "",
-		}
-
-		// Score the story if scoring is enabled
-		if n.scorer != nil {
-			ctx, cancel := context.WithTimeout(context.Background(), scoringTimeout)
-			score, scoreErr := n.scorer.Score(ctx, story.Title)
-
-			cancel()
-
-			if scoreErr != nil {
-				log.WarnErr("scoring story", scoreErr)
-			} else {
-				newBroadcastMessage.Score = score.Value
-				newBroadcastMessage.Reason = score.Reason
-			}
+			Score:  scored.value,
+			Reason: scored.reason,
 		}
 
 		err = broadcastClient.Send(newBroadcastMessage)
@@ -76,6 +74,37 @@ func (n News) broadcastFeed(
 	}
 
 	return nil
+}
+
+type scoredStory struct {
+	value  float64
+	reason string
+	passes bool // false when below the configured MinScore threshold
+}
+
+// scoreStory scores a title against the configured interests and reports whether
+// it clears the relevance threshold. When scoring is disabled or errors, the story
+// passes (value 0) so it is never silently dropped on a scorer failure.
+func (n News) scoreStory(title string, log *logger.Log) scoredStory {
+	if n.scorer == nil {
+		return scoredStory{value: 0, reason: "", passes: true}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), scoringTimeout)
+	defer cancel()
+
+	score, err := n.scorer.Score(ctx, title)
+	if err != nil {
+		log.WarnErr("scoring story", err)
+
+		return scoredStory{value: 0, reason: "", passes: true}
+	}
+
+	return scoredStory{
+		value:  score.Value,
+		reason: score.Reason,
+		passes: score.Value >= n.cfg.Scoring.MinScore,
+	}
 }
 
 func storyMatchesConfig(story parser.Item, source *config.Source) bool {

@@ -39,6 +39,7 @@ type ScoringConfig struct {
 	Interests []string // Topics to score stories against
 	ModelName string   // HuggingFace model name (for embedding provider)
 	ModelDir  string   // Directory to cache models
+	MinScore  float64  // Stories scoring below this (0-1) are not broadcast
 }
 
 type App struct {

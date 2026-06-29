@@ -39,8 +39,8 @@ type Config struct {
 	// ModelDir is the directory to cache downloaded models
 	ModelDir string
 
-	// ModelName is the HuggingFace model name for embedding scorer
-	// Defaults to "sentence-transformers/all-MiniLM-L6-v2"
+	// ModelName is the HuggingFace model2vec model for the embedding scorer.
+	// Defaults to "minishlab/potion-base-8M".
 	ModelName string
 }
 

@@ -18,7 +18,6 @@ const (
 	DefaultModelName = "sentence-transformers/all-MiniLM-L6-v2"
 
 	defaultModelDirPerm = 0o755
-	scoreNormalizer     = 2
 )
 
 var errNoInterests = errors.New("at least one interest is required")
@@ -101,8 +100,8 @@ func (e *EmbeddingScorer) Score(ctx context.Context, title string) (Score, error
 
 	titleEmbedding := result.Vector.Data().F64()
 
-	// Find the highest similarity to any interest
-	maxSim := 0.0
+	// Find the highest similarity to any interest.
+	maxSim := math.Inf(-1)
 	bestMatch := ""
 
 	for i, interestEmb := range e.interestEmbeddings {
@@ -113,20 +112,11 @@ func (e *EmbeddingScorer) Score(ctx context.Context, title string) (Score, error
 		}
 	}
 
-	// Normalize similarity to 0-1 range (cosine similarity can be negative)
-	// For sentence-transformers, values typically range from -1 to 1
-	normalizedScore := (maxSim + 1) / scoreNormalizer
-
-	if normalizedScore < 0 {
-		normalizedScore = 0
-	}
-
-	if normalizedScore > 1 {
-		normalizedScore = 1
-	}
-
+	// all-MiniLM-L6-v2 emits cosine ~0 for unrelated text and up to ~0.8 for
+	// related text, so use the cosine directly as the score. Clamp to [0,1] to
+	// honor the Scorer contract (negatives and floating-point overshoot of 1).
 	return Score{
-		Value:  normalizedScore,
+		Value:  min(1, max(0, maxSim)),
 		Reason: bestMatch,
 	}, nil
 }

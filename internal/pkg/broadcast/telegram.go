@@ -10,6 +10,12 @@ import (
 	"mynews/internal/pkg/validate"
 	"net/http"
 	"strings"
+	"time"
+)
+
+const (
+	telegramTimeout          = 30 * time.Second
+	maxTelegramResponseBytes = 1 << 20 // 1 MiB is ample for the Telegram API JSON response
 )
 
 type Telegram struct {
@@ -40,7 +46,10 @@ func (t Telegram) Name() string {
 	return "telegram-" + t.ChatID
 }
 
-var errUnacceptableResponseFromTelegram = errors.New("unacceptable response from Telegram bot API")
+var (
+	errUnacceptableResponseFromTelegram = errors.New("unacceptable response from Telegram bot API")
+	errTelegramResponseTooLarge         = errors.New("Telegram API response exceeds size limit")
+)
 
 func (t Telegram) Send(message Story) error {
 	//nolint:tagliatelle // required structure for telegram requests
@@ -86,23 +95,22 @@ func (t Telegram) Send(message Story) error {
 	req.Header.Set("Content-Type", "application/json")
 
 	//nolint:exhaustruct // no need to set any other fields
-	client := &http.Client{}
+	client := &http.Client{Timeout: telegramTimeout}
 
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("executing request to Telegram API: %w", err)
 	}
 
-	defer func() {
-		err = resp.Body.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
+	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxTelegramResponseBytes+1))
 	if err != nil {
 		return fmt.Errorf("reading response body: %w", err)
+	}
+
+	if int64(len(body)) > maxTelegramResponseBytes {
+		return errTelegramResponseTooLarge
 	}
 
 	var telegramResponse struct {

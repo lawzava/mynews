@@ -110,3 +110,48 @@ func TestStorageCleanup(t *testing.T) {
 		}
 	}
 }
+
+// TestStorageCleanupRemovesStaleKeys covers the case the other cleanup test never
+// exercised: a key whose last-seen time is genuinely before the cutoff must be
+// pruned, and cleaning one app must not touch another app's bucket.
+func TestStorageCleanupRemovesStaleKeys(t *testing.T) {
+	t.Parallel()
+
+	store := storage.New()
+
+	const (
+		app   = "app"
+		other = "other"
+	)
+
+	err := store.PutKey(app, "stale")
+	if err != nil {
+		t.Fatalf("putting stale key: %v", err)
+	}
+
+	err = store.PutKey(other, "keep")
+	if err != nil {
+		t.Fatalf("putting other key: %v", err)
+	}
+
+	// Everything stored so far predates this cutoff.
+	store.CleanupBefore(app, time.Now().Add(time.Hour))
+
+	staleExists, err := store.KeyExists(app, "stale")
+	if err != nil {
+		t.Fatalf("checking stale key: %v", err)
+	}
+
+	if staleExists {
+		t.Error("stale key should have been pruned")
+	}
+
+	otherExists, err := store.KeyExists(other, "keep")
+	if err != nil {
+		t.Fatalf("checking other key: %v", err)
+	}
+
+	if !otherExists {
+		t.Error("cleaning one app must not remove another app's keys")
+	}
+}

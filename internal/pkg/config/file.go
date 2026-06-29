@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const sampleFeedURL = "https://hnrss.org/newest.atom"
+
 type fileStructure struct {
 	SleepDurationBetweenFeedParsing string `json:"sleepDurationBetweenFeedParsing"`
 	SleepDurationBetweenBroadcasts  string `json:"sleepDurationBetweenBroadcasts"`
@@ -55,14 +57,14 @@ type fileStructureSource struct {
 }
 
 func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config, error) {
-	_, err := os.Stat(configFilePath)
+	_, err := os.Stat(configFilePath) //nolint:gosec // path is the user-provided CLI config location
 	if os.IsNotExist(err) {
 		log.Warn(fmt.Sprintf("File '%s' does not exist", configFilePath))
 
 		return nil, fmt.Errorf("file '%s' does not exist: %w", configFilePath, err)
 	}
 
-	configFile, err := os.Open(configFilePath)
+	configFile, err := os.Open(configFilePath) //nolint:gosec // path is the user-provided CLI config location
 	if err != nil {
 		return nil, fmt.Errorf("opening config file: %w", err)
 	}
@@ -106,7 +108,7 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 	}
 
 	if config.StorageFilePath == "" {
-		config.StorageFilePath = storageFileDefaultLocation
+		config.StorageFilePath = os.ExpandEnv(storageFileDefaultLocation)
 
 		if e := os.Getenv(storageFilePathEnvironmentVariable); e != "" {
 			config.StorageFilePath = e
@@ -115,6 +117,10 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 
 	if config.SleepDurationBetweenBroadcasts == 0 {
 		config.SleepDurationBetweenBroadcasts = defaultSleepDuration
+	}
+
+	if config.SleepDurationBetweenFeedParsing == 0 {
+		config.SleepDurationBetweenFeedParsing = defaultSleepDuration
 	}
 
 	if len(f.Elements) == 0 {
@@ -161,12 +167,16 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 }
 
 func createSampleFile(filePath string) error {
-	_, err := os.Stat(filePath)
-	if err != nil && os.IsExist(err) {
-		return nil
+	_, err := os.Stat(filePath) //nolint:gosec // path is the user-provided CLI config location
+	if err == nil {
+		return nil // config already exists; do not clobber it
 	}
 
-	file, err := os.Create(filePath)
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("checking config file: %w", err)
+	}
+
+	file, err := os.Create(filePath) //nolint:gosec // path is the user-provided CLI config location
 	if err != nil {
 		return fmt.Errorf("initializing config file: %w", err)
 	}
@@ -175,14 +185,14 @@ func createSampleFile(filePath string) error {
 
 	sources := []fileStructureSource{
 		{
-			URL:                 "https://hnrss.org/newest.atom",
+			URL:                 sampleFeedURL,
 			IgnoreStoriesBefore: time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
 			MustIncludeAnyOf:    []string{"linux", "golang", "musk"},
 			MustExcludeAnyOf:    []string{"windows", "trump", "apple"},
 			StatusPage:          false,
 		},
 		{
-			URL:                 "https://hnrss.org/newest.atom",
+			URL:                 sampleFeedURL,
 			IgnoreStoriesBefore: time.Hour.String(),
 			MustIncludeAnyOf:    nil,
 			MustExcludeAnyOf:    nil,
@@ -246,7 +256,7 @@ func (fe fileStructureElement) prepareConfigElement(log *logger.Log) (App, error
 			IgnoreStoriesBefore: time.Time{},
 			MustIncludeKeywords: fe.Sources[sourceIdx].MustIncludeAnyOf,
 			MustExcludeKeywords: fe.Sources[sourceIdx].MustExcludeAnyOf,
-			StatusPage:          false,
+			StatusPage:          fe.Sources[sourceIdx].StatusPage,
 		}
 
 		cfg.Sources[sourceIdx].IgnoreStoriesBefore, err = time.Parse(time.RFC3339, fe.Sources[sourceIdx].IgnoreStoriesBefore)

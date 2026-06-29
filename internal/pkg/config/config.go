@@ -72,7 +72,7 @@ func New(log *logger.Log) (*Config, error) {
 	flag.Parse()
 
 	if configFileLocation == "" {
-		configFileLocation = configFileDefaultLocation
+		configFileLocation = os.ExpandEnv(configFileDefaultLocation)
 
 		if e := os.Getenv(configFilePathEnvironmentVariable); e != "" {
 			configFileLocation = e

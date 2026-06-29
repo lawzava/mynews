@@ -15,11 +15,17 @@ const (
 
 type Log struct {
 	logLevel Level
+	info     *log.Logger
+	warn     *log.Logger
+	err      *log.Logger
 }
 
 func New(logLevel Level) *Log {
 	return &Log{
 		logLevel: logLevel,
+		info:     log.New(os.Stdout, "[INFO] ", log.LstdFlags),
+		warn:     log.New(os.Stderr, "[WARN] ", log.LstdFlags),
+		err:      log.New(os.Stderr, "[ERROR] ", log.LstdFlags),
 	}
 }
 
@@ -44,19 +50,13 @@ func (l Log) print(logLevel Level, msg ...any) {
 		return
 	}
 
-	log.SetOutput(os.Stderr)
-
 	switch logLevel {
 	case Info:
-		log.SetPrefix("[INFO] ")
-		log.SetOutput(os.Stdout)
+		l.info.Println(msg...)
 	case Warn:
-		log.SetPrefix("[WARN] ")
+		l.warn.Println(msg...)
 	case Error:
-		log.SetPrefix("[ERROR] ")
-
-		defer os.Exit(1)
+		l.err.Println(msg...)
+		os.Exit(1)
 	}
-
-	log.Println(msg...)
 }

@@ -17,7 +17,7 @@ import (
 const scoringTimeout = 30 * time.Second
 
 func (n News) broadcastFeed(
-	briadcastClient broadcast.Broadcast,
+	broadcastClient broadcast.Broadcast,
 	stories []parser.Item,
 	source *config.Source,
 	log *logger.Log,
@@ -29,18 +29,13 @@ func (n News) broadcastFeed(
 
 		storyID := buildStoryID(story.PublishedAt, story.Link, source.StatusPage)
 
-		storyWasAlreadySent, err := n.cfg.Store.KeyExists(briadcastClient.Name(), storyID)
+		storyWasAlreadySent, err := n.cfg.Store.KeyExists(broadcastClient.Name(), storyID)
 		if err != nil {
 			return fmt.Errorf("checking if story was already sent: %w", err)
 		}
 
 		if storyWasAlreadySent {
 			continue
-		}
-
-		err = n.cfg.Store.PutKey(briadcastClient.Name(), storyID)
-		if err != nil {
-			return fmt.Errorf("registering story as sent: %w", err)
 		}
 
 		newBroadcastMessage := broadcast.Story{
@@ -65,9 +60,16 @@ func (n News) broadcastFeed(
 			}
 		}
 
-		err = briadcastClient.Send(newBroadcastMessage)
+		err = broadcastClient.Send(newBroadcastMessage)
 		if err != nil {
 			return fmt.Errorf("broadcasting story: %w", err)
+		}
+
+		// Record the story as sent only after a successful broadcast, so a
+		// transient Send failure is retried on the next parse cycle.
+		err = n.cfg.Store.PutKey(broadcastClient.Name(), storyID)
+		if err != nil {
+			return fmt.Errorf("registering story as sent: %w", err)
 		}
 
 		time.Sleep(n.cfg.SleepDurationBetweenBroadcasts)

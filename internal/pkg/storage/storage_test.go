@@ -155,3 +155,34 @@ func TestStorageCleanupRemovesStaleKeys(t *testing.T) {
 		t.Error("cleaning one app must not remove another app's keys")
 	}
 }
+
+func TestStorageCleanupAllBefore(t *testing.T) {
+	t.Parallel()
+
+	store := storage.New()
+
+	err := store.PutKey("app-a", "old")
+	if err != nil {
+		t.Fatalf("putting key: %v", err)
+	}
+
+	err = store.PutKey("app-b", "also-old")
+	if err != nil {
+		t.Fatalf("putting key: %v", err)
+	}
+
+	// Cutoff in the future: every stored key predates it and must be pruned
+	// across all apps.
+	store.CleanupAllBefore(time.Now().Add(time.Hour))
+
+	for _, want := range []struct{ app, key string }{{"app-a", "old"}, {"app-b", "also-old"}} {
+		exists, existsErr := store.KeyExists(want.app, want.key)
+		if existsErr != nil {
+			t.Fatalf("checking %s/%s: %v", want.app, want.key, existsErr)
+		}
+
+		if exists {
+			t.Errorf("key %s/%s should have been pruned", want.app, want.key)
+		}
+	}
+}

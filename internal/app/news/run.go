@@ -10,7 +10,13 @@ import (
 	"time"
 )
 
-const maxConcurrentFetches = 8
+const (
+	maxConcurrentFetches = 8
+
+	// storageRetention bounds how long a dedup key is kept once it stops being
+	// seen, so storage cannot grow without bound if a source stays unreachable.
+	storageRetention = 30 * 24 * time.Hour
+)
 
 // Run polls every configured feed in a loop until ctx is canceled, returning
 // nil on a clean shutdown.
@@ -18,6 +24,15 @@ func (n News) Run(ctx context.Context, log *logger.Log) error {
 	for {
 		for _, app := range n.cfg.Apps {
 			n.parseApp(ctx, app, log)
+		}
+
+		n.cfg.Store.CleanupAllBefore(time.Now().Add(-storageRetention))
+
+		// Flush after each cycle so an unexpected exit loses at most one cycle of
+		// dedup state rather than everything since startup.
+		err := n.cfg.Store.DumpToFile(n.cfg.StorageFilePath)
+		if err != nil {
+			log.WarnErr("flushing storage to disk", err)
 		}
 
 		if !sleep(ctx, n.cfg.SleepDurationBetweenFeedParsing) {

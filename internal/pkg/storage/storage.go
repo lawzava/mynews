@@ -72,6 +72,22 @@ func (s *Storage) CleanupBefore(app string, before time.Time) {
 	s.mux.Unlock()
 }
 
+// CleanupAllBefore removes keys last seen before the cutoff across every app. It
+// is a safety net that bounds storage growth even when a persistently failing
+// source suppresses the per-app CleanupBefore.
+func (s *Storage) CleanupAllBefore(before time.Time) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
+	for app, keys := range s.store {
+		for key, lastSeenAt := range keys {
+			if lastSeenAt.Before(before) {
+				delete(s.store[app], key)
+			}
+		}
+	}
+}
+
 // DumpToFile atomically persists the store to filePath. It writes to a temporary
 // file in the same directory and renames it into place, so an interrupted dump
 // never leaves a truncated or partial data file.

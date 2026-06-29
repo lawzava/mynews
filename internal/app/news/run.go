@@ -26,6 +26,8 @@ func (n News) Run(ctx context.Context, log *logger.Log) error {
 			n.parseApp(ctx, app, log)
 		}
 
+		n.metrics.CycleCompleted()
+
 		n.cfg.Store.CleanupAllBefore(time.Now().Add(-storageRetention))
 
 		// Flush after each cycle so an unexpected exit loses at most one cycle of
@@ -54,12 +56,16 @@ func (n News) parseApp(ctx context.Context, app config.App, log *logger.Log) {
 		}
 
 		if result.err != nil {
+			n.metrics.ParseError()
+
 			log.WarnErr(fmt.Sprintf("parsing feed of source '%s'", result.source.URL), result.err)
 
 			sourceHadIssues = true
 
 			continue
 		}
+
+		n.metrics.FeedParsed()
 
 		err := n.broadcastFeed(ctx, app.Broadcast, result.items, result.source, log)
 		if err != nil {

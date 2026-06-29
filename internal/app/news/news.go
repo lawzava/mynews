@@ -4,21 +4,24 @@ import (
 	"fmt"
 	"mynews/internal/pkg/config"
 	"mynews/internal/pkg/logger"
+	"mynews/internal/pkg/metrics"
 	"mynews/internal/pkg/scorer"
 	"path/filepath"
 )
 
 // News handles RSS feed parsing and broadcasting.
 type News struct {
-	cfg    *config.Config
-	scorer scorer.Scorer
+	cfg     *config.Config
+	scorer  scorer.Scorer
+	metrics *metrics.Metrics
 }
 
 // New creates a new News instance with optional scoring.
-func New(cfg *config.Config, log *logger.Log) (News, error) {
+func New(cfg *config.Config, met *metrics.Metrics, log *logger.Log) (News, error) {
 	newsInstance := News{
-		cfg:    cfg,
-		scorer: nil,
+		cfg:     cfg,
+		scorer:  nil,
+		metrics: met,
 	}
 
 	if cfg.Scoring != nil && cfg.Scoring.Enabled {

@@ -22,6 +22,8 @@ type fileStructure struct {
 
 	StorageFilePath string `json:"storageFilePath"`
 
+	MetricsAddr string `json:"metricsAddr,omitempty"`
+
 	Elements []fileStructureElement `json:"apps"`
 
 	Scoring *fileStructureScoring `json:"scoring,omitempty"`
@@ -110,6 +112,7 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 
 	config.Store = storage.New()
 	config.StorageFilePath = f.StorageFilePath
+	config.MetricsAddr = f.MetricsAddr
 
 	if config.StorageFilePath == "" {
 		config.StorageFilePath = storageFilePath
@@ -202,6 +205,7 @@ func createSampleFile(filePath string) error {
 		//nolint:mnd // allow fore defaults
 		SleepDurationBetweenBroadcasts: (time.Second * 10).String(),
 		StorageFilePath:                "",
+		MetricsAddr:                    "",
 		Elements: []fileStructureElement{
 			{
 				BroadcastType:       stdoutBroadcastType,

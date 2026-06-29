@@ -6,10 +6,14 @@ import (
 	"mynews/internal/app/news"
 	"mynews/internal/pkg/config"
 	"mynews/internal/pkg/logger"
+	"mynews/internal/pkg/metrics"
 	"os"
 	"os/signal"
 	"syscall"
 )
+
+// healthStaleCycles is how many missed parse cycles mark the loop unhealthy.
+const healthStaleCycles = 3
 
 func main() {
 	log := logger.New(logger.Info)
@@ -28,12 +32,25 @@ func main() {
 		os.Exit(0)
 	}
 
-	newsRunner, err := news.New(cfg, log)
+	met := metrics.New(cfg.SleepDurationBetweenFeedParsing * healthStaleCycles)
+
+	newsRunner, err := news.New(cfg, met, log)
 	if err != nil {
 		log.Fatal("initializing news runner failed", err)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
+	if cfg.MetricsAddr != "" {
+		go func() {
+			serveErr := met.Serve(ctx, cfg.MetricsAddr)
+			if serveErr != nil {
+				log.WarnErr("metrics server stopped", serveErr)
+			}
+		}()
+
+		log.Info("Serving health and metrics on " + cfg.MetricsAddr)
+	}
 
 	runErr := newsRunner.Run(ctx, log)
 

@@ -78,6 +78,7 @@ func importOPMLFile(opmlPath, configPath string, log *logger.Log) error {
 		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),
 		SleepDurationBetweenBroadcasts:  defaultSleepDuration.String(),
 		StorageFilePath:                 "",
+		MetricsAddr:                     "",
 		Elements: []fileStructureElement{
 			{
 				BroadcastType:       stdoutBroadcastType,

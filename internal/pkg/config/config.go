@@ -31,6 +31,9 @@ type Config struct {
 	Apps []App
 
 	Scoring *ScoringConfig
+
+	// MetricsAddr, when set (e.g. ":8080"), serves /healthz and /metrics.
+	MetricsAddr string
 }
 
 type ScoringConfig struct {

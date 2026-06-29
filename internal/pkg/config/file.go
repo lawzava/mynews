@@ -11,7 +11,10 @@ import (
 	"time"
 )
 
-const sampleFeedURL = "https://hnrss.org/newest.atom"
+const (
+	sampleFeedURL       = "https://hnrss.org/newest.atom"
+	stdoutBroadcastType = "stdout"
+)
 
 type fileStructure struct {
 	SleepDurationBetweenFeedParsing string `json:"sleepDurationBetweenFeedParsing"`
@@ -176,22 +179,6 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 }
 
 func createSampleFile(filePath string) error {
-	_, err := os.Stat(filePath) //nolint:gosec // path is the user-provided CLI config location
-	if err == nil {
-		return nil // config already exists; do not clobber it
-	}
-
-	if !os.IsNotExist(err) {
-		return fmt.Errorf("checking config file: %w", err)
-	}
-
-	file, err := os.Create(filePath) //nolint:gosec // path is the user-provided CLI config location
-	if err != nil {
-		return fmt.Errorf("initializing config file: %w", err)
-	}
-
-	defer func() { _ = file.Close() }()
-
 	sources := []fileStructureSource{
 		{
 			URL:                 sampleFeedURL,
@@ -217,7 +204,7 @@ func createSampleFile(filePath string) error {
 		StorageFilePath:                "",
 		Elements: []fileStructureElement{
 			{
-				BroadcastType:       "stdout",
+				BroadcastType:       stdoutBroadcastType,
 				Sources:             sources,
 				TelegramBotAPIToken: "",
 				TelegramChatID:      "",
@@ -244,12 +231,34 @@ func createSampleFile(filePath string) error {
 		LegacySources:             nil,
 	}
 
+	return writeConfigFile(filePath, &defaultFileStructure)
+}
+
+// writeConfigFile writes fileStruct as indented JSON to filePath, refusing to
+// clobber an existing file.
+func writeConfigFile(filePath string, fileStruct *fileStructure) error {
+	_, err := os.Stat(filePath) //nolint:gosec // path is the user-provided CLI config location
+	if err == nil {
+		return nil // config already exists; do not clobber it
+	}
+
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("checking config file: %w", err)
+	}
+
+	file, err := os.Create(filePath) //nolint:gosec // path is the user-provided CLI config location
+	if err != nil {
+		return fmt.Errorf("initializing config file: %w", err)
+	}
+
+	defer func() { _ = file.Close() }()
+
 	jsonWriter := json.NewEncoder(file)
 	jsonWriter.SetIndent("", "	")
 
-	err = jsonWriter.Encode(defaultFileStructure)
+	err = jsonWriter.Encode(fileStruct)
 	if err != nil {
-		return fmt.Errorf("writing sample config: %w", err)
+		return fmt.Errorf("writing config: %w", err)
 	}
 
 	return nil

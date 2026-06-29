@@ -59,8 +59,8 @@ const (
 
 func New(log *logger.Log) (*Config, error) {
 	var (
-		configFileLocation, storageFileLocation string
-		createSample                            bool
+		configFileLocation, storageFileLocation, importOPML string
+		createSample                                        bool
 	)
 
 	flag.StringVar(&configFileLocation, "config", "",
@@ -70,6 +70,7 @@ func New(log *logger.Log) (*Config, error) {
 		fmt.Sprintf("Path to storage file. Defaults to '%s'.", storageFileDefaultLocation))
 
 	flag.BoolVar(&createSample, "create", false, `Creates a sample config file.`)
+	flag.StringVar(&importOPML, "import-opml", "", "Path to an OPML file to import feeds from into a new config.")
 	flag.Parse()
 
 	if configFileLocation == "" {
@@ -89,6 +90,17 @@ func New(log *logger.Log) (*Config, error) {
 		log.Info(fmt.Sprintf(`Created a sample config file at '%s'`, configFileLocation))
 
 		return nil, fmt.Errorf("created sample config file: %w", ErrCreatedNewFile)
+	}
+
+	if importOPML != "" {
+		err := importOPMLFile(importOPML, configFileLocation, log)
+		if err != nil {
+			return nil, fmt.Errorf("importing OPML: %w", err)
+		}
+
+		log.Info(fmt.Sprintf(`Created config from OPML at '%s'`, configFileLocation))
+
+		return nil, fmt.Errorf("created config from OPML: %w", ErrCreatedNewFile)
 	}
 
 	config, err := fromFile(configFileLocation, storageFileLocation, log)

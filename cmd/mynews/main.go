@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"mynews/internal/app/news"
 	"mynews/internal/pkg/config"
 	"mynews/internal/pkg/logger"
@@ -15,6 +16,10 @@ func main() {
 
 	cfg, err := config.New(log)
 	if err != nil {
+		if errors.Is(err, config.ErrCreatedNewFile) {
+			os.Exit(0)
+		}
+
 		log.Fatal("initiating config failed", err)
 	}
 

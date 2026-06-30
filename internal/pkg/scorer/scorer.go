@@ -44,7 +44,7 @@ type Config struct {
 	ModelDir string
 
 	// ModelName is the HuggingFace model2vec model for the embedding scorer.
-	// Defaults to "minishlab/potion-base-8M".
+	// Defaults to "minishlab/potion-retrieval-32M".
 	ModelName string
 }
 

@@ -10,8 +10,11 @@ import (
 )
 
 const (
-	// DefaultModelName is the default model2vec potion model.
-	DefaultModelName = "minishlab/potion-base-8M"
+	// DefaultModelName is the default model2vec potion model. potion-retrieval-32M
+	// is tuned for retrieval/similarity (our scoring use case) and is the best
+	// static model in the family; it stays pure lookup+mean, so CPU cost per title
+	// is unchanged (it just uses ~130MB of RAM for the larger embedding matrix).
+	DefaultModelName = "minishlab/potion-retrieval-32M"
 
 	defaultModelDirPerm = 0o755
 	defaultScore        = 0.0

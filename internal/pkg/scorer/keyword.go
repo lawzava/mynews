@@ -63,6 +63,27 @@ func (k *KeywordScorer) Name() string {
 	return ProviderKeyword
 }
 
+// Derive returns a keyword scorer for the given interests.
+//
+//nolint:ireturn // satisfies the Scorer factory contract
+func (k *KeywordScorer) Derive(interests []string) (Scorer, error) {
+	if len(interests) == 0 {
+		return k, nil
+	}
+
+	derived, err := NewKeywordScorer(Config{
+		Provider:  ProviderKeyword,
+		Interests: interests,
+		ModelDir:  "",
+		ModelName: "",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return derived, nil
+}
+
 // Close is a no-op for keyword scorer.
 func (k *KeywordScorer) Close() error {
 	return nil

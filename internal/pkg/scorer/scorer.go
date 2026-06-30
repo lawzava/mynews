@@ -24,8 +24,21 @@ type Scorer interface {
 	// Name returns the scorer identifier (e.g., "embedding", "keyword").
 	Name() string
 
+	// Derive returns a scorer that scores against the given interests, reusing any
+	// already-loaded model. It returns the receiver unchanged when interests is empty.
+	Derive(interests []string) (Scorer, error)
+
 	// Close releases any resources held by the scorer.
 	Close() error
+}
+
+// Summarizer is an optional capability for scorers that can produce an extractive
+// summary of an article. Only the embedding scorer implements it; callers should
+// type-assert and fall back gracefully when it is absent.
+type Summarizer interface {
+	// Summarize returns the article sentence most relevant to the title, or "" if
+	// the body yields no usable sentence.
+	Summarize(ctx context.Context, title, body string) (string, error)
 }
 
 // Config holds scorer configuration.
@@ -39,21 +52,29 @@ type Config struct {
 	// ModelDir is the directory to cache downloaded models
 	ModelDir string
 
-	// ModelName is the HuggingFace model name for embedding scorer
-	// Defaults to "sentence-transformers/all-MiniLM-L6-v2"
+	// ModelName is the HuggingFace model2vec model for the embedding scorer.
+	// Defaults to "minishlab/potion-retrieval-32M".
 	ModelName string
 }
 
 // NewScorer creates a scorer based on configuration.
-func NewScorer(cfg Config) (*EmbeddingScorer, *KeywordScorer, error) {
+//
+//nolint:ireturn // factory deliberately returns the Scorer impl selected by provider
+func NewScorer(cfg Config) (Scorer, error) {
 	switch cfg.Provider {
 	case ProviderKeyword:
 		keywordScorer, err := NewKeywordScorer(cfg)
+		if err != nil {
+			return nil, err
+		}
 
-		return nil, keywordScorer, err
+		return keywordScorer, nil
 	default:
 		embeddingScorer, err := NewEmbeddingScorer(cfg)
+		if err != nil {
+			return nil, err
+		}
 
-		return embeddingScorer, nil, err
+		return embeddingScorer, nil
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"mynews/internal/pkg/logger"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -64,32 +65,62 @@ func (s *Storage) CleanupBefore(app string, before time.Time) {
 
 	for key, lastSeenAt := range s.store[app] {
 		if lastSeenAt.Before(before) {
-			delete(s.store, key)
+			delete(s.store[app], key)
 		}
 	}
 
 	s.mux.Unlock()
 }
 
-func (s *Storage) DumpToFile(filePath string) error {
-	_, err := os.Stat(filePath)
-	if os.IsExist(err) {
-		err = os.Remove(filePath)
-		if err != nil {
-			return fmt.Errorf("removing old dump file: %w", err)
+// CleanupAllBefore removes keys last seen before the cutoff across every app. It
+// is a safety net that bounds storage growth even when a persistently failing
+// source suppresses the per-app CleanupBefore.
+func (s *Storage) CleanupAllBefore(before time.Time) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
+	for app, keys := range s.store {
+		for key, lastSeenAt := range keys {
+			if lastSeenAt.Before(before) {
+				delete(s.store[app], key)
+			}
 		}
 	}
+}
 
-	dataFile, err := os.Create(filePath)
+// DumpToFile atomically persists the store to filePath. It writes to a temporary
+// file in the same directory and renames it into place, so an interrupted dump
+// never leaves a truncated or partial data file.
+func (s *Storage) DumpToFile(filePath string) error {
+	tmpFile, err := os.CreateTemp(filepath.Dir(filePath), ".mynews-data-*.tmp")
 	if err != nil {
 		return fmt.Errorf("initializing data file: %w", err)
 	}
 
-	defer func() { _ = dataFile.Close() }()
+	tmpName := tmpFile.Name()
 
-	err = json.NewEncoder(dataFile).Encode(s.store)
+	defer func() { _ = os.Remove(tmpName) }() // no-op once the rename below succeeds
+
+	// Hold the read lock for the snapshot: PutKey/KeyExists/CleanupBefore all take
+	// the write lock, so without this the encoder races a concurrent map write.
+	s.mux.RLock()
+	err = json.NewEncoder(tmpFile).Encode(s.store)
+	s.mux.RUnlock()
+
 	if err != nil {
+		_ = tmpFile.Close()
+
 		return fmt.Errorf("writing to data file: %w", err)
+	}
+
+	err = tmpFile.Close()
+	if err != nil {
+		return fmt.Errorf("closing data file: %w", err)
+	}
+
+	err = os.Rename(tmpName, filePath)
+	if err != nil {
+		return fmt.Errorf("replacing data file: %w", err)
 	}
 
 	return nil

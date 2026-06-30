@@ -10,17 +10,27 @@ import (
 	"mynews/internal/pkg/validate"
 	"net/http"
 	"strings"
+	"time"
+)
+
+const (
+	telegramTimeout          = 30 * time.Second
+	maxTelegramResponseBytes = 1 << 20 // 1 MiB is ample for the Telegram API JSON response
+	telegramAPIBase          = "https://api.telegram.org"
+	telegramParseMode        = "MarkdownV2"
 )
 
 type Telegram struct {
 	BotAPIToken string
 	ChatID      string
+	baseURL     string // overridable for testing; defaults to the public API
 }
 
 func NewTelegramClient(botAPIToken, chatID string) (*Telegram, error) {
 	client := Telegram{
 		BotAPIToken: botAPIToken,
 		ChatID:      chatID,
+		baseURL:     telegramAPIBase,
 	}
 
 	err := validate.RequiredString(client.BotAPIToken, "Telegram API Token")
@@ -40,7 +50,10 @@ func (t Telegram) Name() string {
 	return "telegram-" + t.ChatID
 }
 
-var errUnacceptableResponseFromTelegram = errors.New("unacceptable response from Telegram bot API")
+var (
+	errUnacceptableResponseFromTelegram = errors.New("unacceptable response from Telegram bot API")
+	errTelegramResponseTooLarge         = errors.New("Telegram API response exceeds size limit")
+)
 
 func (t Telegram) Send(message Story) error {
 	//nolint:tagliatelle // required structure for telegram requests
@@ -66,7 +79,7 @@ func (t Telegram) Send(message Story) error {
 		ReplyMarkup replyMarkup `json:"reply_markup"`
 	}{
 		ChatID:    t.ChatID,
-		ParseMode: "MarkdownV2",
+		ParseMode: telegramParseMode,
 		Text:      text,
 		ReplyMarkup: replyMarkup{
 			InlineKeyboard: [][]inlineKeyboard{
@@ -80,29 +93,28 @@ func (t Telegram) Send(message Story) error {
 		return fmt.Errorf("preparing request body: %w", err)
 	}
 
-	requestURL := fmt.Sprintf("https://api.Telegram.org/bot%s/sendMessage", t.BotAPIToken)
+	requestURL := fmt.Sprintf("%s/bot%s/sendMessage", t.baseURL, t.BotAPIToken)
 
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 
 	//nolint:exhaustruct // no need to set any other fields
-	client := &http.Client{}
+	client := &http.Client{Timeout: telegramTimeout}
 
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("executing request to Telegram API: %w", err)
 	}
 
-	defer func() {
-		err = resp.Body.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
+	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxTelegramResponseBytes+1))
 	if err != nil {
 		return fmt.Errorf("reading response body: %w", err)
+	}
+
+	if int64(len(body)) > maxTelegramResponseBytes {
+		return errTelegramResponseTooLarge
 	}
 
 	var telegramResponse struct {
@@ -125,23 +137,19 @@ func (t Telegram) Send(message Story) error {
 const scoreMultiplier = 100
 
 func buildTelegramText(message Story) string {
-	if message.Score > 0 {
-		return fmt.Sprintf(`*%s*
-📊 Score: %.0f%%
+	text := "*" + escapeTelegramText(message.Title) + "*\n"
 
-%s`, // empty line is intended
-			escapeTelegramText(message.Title),
-			message.Score*scoreMultiplier,
-			escapeTelegramText(message.URL),
-		)
+	if message.Score > 0 {
+		text += fmt.Sprintf("📊 Score: %.0f%%\n", message.Score*scoreMultiplier)
 	}
 
-	return fmt.Sprintf(`*%s*
+	if message.Summary != "" {
+		text += "\n" + escapeTelegramText(message.Summary) + "\n"
+	}
 
-%s`, // empty line is intended
-		escapeTelegramText(message.Title),
-		escapeTelegramText(message.URL),
-	)
+	text += "\n" + escapeTelegramText(message.URL)
+
+	return text
 }
 
 func escapeTelegramText(text string) string {

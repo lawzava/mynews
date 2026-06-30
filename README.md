@@ -19,7 +19,8 @@ scorer and everything else runs fully offline.
 - **Relevance scoring** (optional): score story titles against your interests with local
   static embeddings (`embedding`, via [model2vec](https://github.com/MinishLab/model2vec))
   or simple `keyword` matching. Set `minScore` to drop low-relevance stories, and override
-  interests per source.
+  interests per source. With embedding scoring, stories whose feed entry has no description
+  get a best-effort extractive summary by default (disable with `disableArticleSummaries`).
 - **Digest mode**: batch the top-N highest-scoring stories per interval instead of sending
   each one as it arrives.
 - **Cross-source dedup**: the same article shared under different URLs (tracking params,
@@ -42,9 +43,16 @@ Executing bare `mynews` will use in-memory DB and will print to stdout by defaul
 
 For full list of available options, see: `mynews -help`
 
+Configuration is minimal — most fields are optional with sensible defaults (feeds parsed
+every 5m, a 24h story window, stdout output). A complete config can be as small as:
+
+```json
+{ "apps": [ { "sources": [ { "url": "https://hnrss.org/newest.atom" } ] } ] }
+```
+
 Generate a starting config with `mynews -create`, or import an existing OPML export with
 `mynews -import-opml feeds.opml`. See [`config.sample.json`](config.sample.json) for a
-worked example covering broadcast targets, scoring, per-source interests, and digest mode.
+worked example covering every option (broadcast targets, scoring, per-source interests, digest).
 
 Working examples: 
 

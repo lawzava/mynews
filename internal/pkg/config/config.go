@@ -68,7 +68,11 @@ const (
 	storageFilePathEnvironmentVariable = "MYNEWS_STORAGE_FILE"
 	storageFileDefaultLocation         = "$HOME/.config/mynews/data.json"
 
-	defaultSleepDuration = 10 * time.Second
+	// Defaults applied when the corresponding config field is omitted, so a
+	// minimal config works well out of the box.
+	defaultFeedParsingInterval = 5 * time.Minute
+	defaultBroadcastInterval   = 10 * time.Second
+	defaultIgnoreStoriesBefore = 24 * time.Hour
 )
 
 func New(log *logger.Log) (*Config, error) {

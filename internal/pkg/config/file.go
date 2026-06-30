@@ -17,10 +17,10 @@ const (
 )
 
 type fileStructure struct {
-	SleepDurationBetweenFeedParsing string `json:"sleepDurationBetweenFeedParsing"`
-	SleepDurationBetweenBroadcasts  string `json:"sleepDurationBetweenBroadcasts"`
+	SleepDurationBetweenFeedParsing string `json:"sleepDurationBetweenFeedParsing,omitempty"`
+	SleepDurationBetweenBroadcasts  string `json:"sleepDurationBetweenBroadcasts,omitempty"`
 
-	StorageFilePath string `json:"storageFilePath"`
+	StorageFilePath string `json:"storageFilePath,omitempty"`
 
 	MetricsAddr string `json:"metricsAddr,omitempty"`
 
@@ -31,28 +31,30 @@ type fileStructure struct {
 	// Used for backwards compatibility reasons
 	// Deprecated: will be removed in v2
 
-	LegacyBroadcastType       string `json:"broadcastType"`
-	LegacyTelegramBotAPIToken string `json:"telegramBotAPIToken"`
-	LegacyTelegramChatID      string `json:"telegramChatID"`
+	LegacyBroadcastType       string `json:"broadcastType,omitempty"`
+	LegacyTelegramBotAPIToken string `json:"telegramBotAPIToken,omitempty"`
+	LegacyTelegramChatID      string `json:"telegramChatID,omitempty"`
 
-	LegacySources []fileStructureSource `json:"sources"`
+	LegacySources []fileStructureSource `json:"sources,omitempty"`
 }
 
 type fileStructureScoring struct {
 	Enabled   bool     `json:"enabled"`
-	Provider  string   `json:"provider"`  // "embedding" or "keyword"
-	Interests []string `json:"interests"` // Topics to score stories against
+	Provider  string   `json:"provider,omitempty"` // "embedding" (default) or "keyword"
+	Interests []string `json:"interests"`          // Topics to score stories against
 	ModelName string   `json:"modelName,omitempty"`
 	ModelDir  string   `json:"modelDir,omitempty"`
 	MinScore  float64  `json:"minScore,omitempty"` // Stories scoring below this (0-1) are dropped
 
-	SummarizeArticles bool `json:"summarizeArticles,omitempty"`
+	// DisableArticleSummaries turns off the default behavior of attaching an
+	// extractive summary to stories whose feed entry has no description.
+	DisableArticleSummaries bool `json:"disableArticleSummaries,omitempty"`
 }
 
 type fileStructureElement struct {
-	BroadcastType       string `json:"broadcastType"`
-	TelegramBotAPIToken string `json:"telegramBotAPIToken"`
-	TelegramChatID      string `json:"telegramChatID"`
+	BroadcastType       string `json:"broadcastType,omitempty"`
+	TelegramBotAPIToken string `json:"telegramBotAPIToken,omitempty"`
+	TelegramChatID      string `json:"telegramChatID,omitempty"`
 	DiscordWebhookURL   string `json:"discordWebhookURL,omitempty"`
 	SlackWebhookURL     string `json:"slackWebhookURL,omitempty"`
 	WebhookURL          string `json:"webhookURL,omitempty"`
@@ -69,10 +71,10 @@ type fileStructureDigest struct {
 
 type fileStructureSource struct {
 	URL                 string   `json:"url"`
-	IgnoreStoriesBefore string   `json:"ignoreStoriesBefore"`
-	MustIncludeAnyOf    []string `json:"mustIncludeAnyOf"`
-	MustExcludeAnyOf    []string `json:"mustExcludeAnyOf"`
-	StatusPage          bool     `json:"statusPage"`
+	IgnoreStoriesBefore string   `json:"ignoreStoriesBefore,omitempty"`
+	MustIncludeAnyOf    []string `json:"mustIncludeAnyOf,omitempty"`
+	MustExcludeAnyOf    []string `json:"mustExcludeAnyOf,omitempty"`
+	StatusPage          bool     `json:"statusPage,omitempty"`
 	Interests           []string `json:"interests,omitempty"`
 }
 
@@ -103,22 +105,61 @@ func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config,
 	return file.toConfig(storageFilePath, log)
 }
 
-//nolint:cyclop,funlen // allow higher complexity on config setup for now
+// durationOr returns fallback when value is empty or "0", the parsed duration
+// otherwise. An invalid value warns and falls back rather than failing the load.
+func durationOr(value string, fallback time.Duration, log *logger.Log) time.Duration {
+	if value == "" {
+		return fallback
+	}
+
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		log.WarnErr("invalid duration in config, using default", err)
+
+		return fallback
+	}
+
+	if duration == 0 {
+		return fallback
+	}
+
+	return duration
+}
+
+// parseIgnoreBefore resolves a source's cutoff. An empty value uses the default
+// window; otherwise it accepts an RFC3339 timestamp or a duration ("24h") before
+// now. A non-empty but unparseable value warns and falls back to the default.
+func parseIgnoreBefore(value string, log *logger.Log) time.Time {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return time.Now().UTC().Add(-defaultIgnoreStoriesBefore)
+	}
+
+	timestamp, err := time.Parse(time.RFC3339, value)
+	if err == nil {
+		return timestamp
+	}
+
+	duration, err := time.ParseDuration(value)
+	if err == nil {
+		return time.Now().UTC().Add(-duration)
+	}
+
+	log.WarnErr("invalid ignoreStoriesBefore, using default window",
+		fmt.Errorf("value %q is neither an RFC3339 time nor a duration", value)) //nolint:err113 // contextual
+
+	return time.Now().UTC().Add(-defaultIgnoreStoriesBefore)
+}
+
+//nolint:cyclop // allow higher complexity on config setup for now
 func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Config, error) {
 	var (
 		config Config
 		err    error
 	)
 
-	config.SleepDurationBetweenBroadcasts, err = time.ParseDuration(f.SleepDurationBetweenBroadcasts)
-	if err != nil {
-		return nil, fmt.Errorf("invalid broadcast sleep duration format: %w", err)
-	}
-
-	config.SleepDurationBetweenFeedParsing, err = time.ParseDuration(f.SleepDurationBetweenFeedParsing)
-	if err != nil {
-		return nil, fmt.Errorf("invalid feed parsing sleep duration format: %w", err)
-	}
+	config.SleepDurationBetweenFeedParsing = durationOr(f.SleepDurationBetweenFeedParsing, defaultFeedParsingInterval, log)
+	config.SleepDurationBetweenBroadcasts = durationOr(f.SleepDurationBetweenBroadcasts, defaultBroadcastInterval, log)
 
 	config.Store = storage.New()
 	config.StorageFilePath = f.StorageFilePath
@@ -134,14 +175,6 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 		if e := os.Getenv(storageFilePathEnvironmentVariable); e != "" {
 			config.StorageFilePath = e
 		}
-	}
-
-	if config.SleepDurationBetweenBroadcasts == 0 {
-		config.SleepDurationBetweenBroadcasts = defaultSleepDuration
-	}
-
-	if config.SleepDurationBetweenFeedParsing == 0 {
-		config.SleepDurationBetweenFeedParsing = defaultSleepDuration
 	}
 
 	if len(f.Elements) == 0 {
@@ -186,61 +219,48 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 			ModelName:         f.Scoring.ModelName,
 			ModelDir:          f.Scoring.ModelDir,
 			MinScore:          f.Scoring.MinScore,
-			SummarizeArticles: f.Scoring.SummarizeArticles,
+			SummarizeArticles: !f.Scoring.DisableArticleSummaries,
 		}
 	}
 
 	return &config, nil
 }
 
+// createSampleFile writes a minimal starter config that relies on defaults: feed
+// parsing every 5m, a 24h story window, stdout output, scoring off. Optional
+// fields are omitted (see config.sample.json / README for the full surface).
 func createSampleFile(filePath string) error {
 	sources := []fileStructureSource{
 		{
 			URL:                 sampleFeedURL,
-			IgnoreStoriesBefore: time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
-			MustIncludeAnyOf:    []string{"linux", "golang", "musk"},
-			MustExcludeAnyOf:    []string{"windows", "trump", "apple"},
-			StatusPage:          false,
-			Interests:           nil,
-		},
-		{
-			URL:                 sampleFeedURL,
-			IgnoreStoriesBefore: time.Hour.String(),
-			MustIncludeAnyOf:    nil,
+			IgnoreStoriesBefore: "",
+			MustIncludeAnyOf:    []string{"linux", "golang"},
 			MustExcludeAnyOf:    nil,
 			StatusPage:          false,
 			Interests:           nil,
 		},
 	}
 
-	defaultFileStructure := fileStructure{
-		//nolint:mnd // allow fore defaults
-		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),
-		//nolint:mnd // allow fore defaults
-		SleepDurationBetweenBroadcasts: (time.Second * 10).String(),
-		StorageFilePath:                "",
-		MetricsAddr:                    "",
-		Elements:                       []fileStructureElement{stdoutElement(sources)},
-		Scoring: &fileStructureScoring{
-			Enabled:  false,
-			Provider: "embedding",
-			Interests: []string{
-				"artificial intelligence and machine learning",
-				"geopolitical conflicts and international relations",
-				"stock market and financial technology",
-			},
-			ModelName:         "",
-			ModelDir:          "",
-			MinScore:          0,
-			SummarizeArticles: false,
-		},
-		LegacyBroadcastType:       "",
-		LegacyTelegramBotAPIToken: "",
-		LegacyTelegramChatID:      "",
-		LegacySources:             nil,
-	}
+	sample := leanFileStructure(sources)
 
-	return writeConfigFile(filePath, &defaultFileStructure)
+	return writeConfigFile(filePath, &sample)
+}
+
+// leanFileStructure wraps sources in a single stdout app and leaves every
+// optional field at its default, producing a minimal config file.
+func leanFileStructure(sources []fileStructureSource) fileStructure {
+	return fileStructure{
+		SleepDurationBetweenFeedParsing: "",
+		SleepDurationBetweenBroadcasts:  "",
+		StorageFilePath:                 "",
+		MetricsAddr:                     "",
+		Elements:                        []fileStructureElement{stdoutElement(sources)},
+		Scoring:                         nil,
+		LegacyBroadcastType:             "",
+		LegacyTelegramBotAPIToken:       "",
+		LegacyTelegramChatID:            "",
+		LegacySources:                   nil,
+	}
 }
 
 // stdoutElement builds a stdout broadcast element with the given sources.
@@ -298,22 +318,11 @@ func (fe *fileStructureElement) prepareConfigElement(log *logger.Log) (App, erro
 	for sourceIdx := range fe.Sources {
 		cfg.Sources[sourceIdx] = &Source{
 			URL:                 fe.Sources[sourceIdx].URL,
-			IgnoreStoriesBefore: time.Time{},
+			IgnoreStoriesBefore: parseIgnoreBefore(fe.Sources[sourceIdx].IgnoreStoriesBefore, log),
 			MustIncludeKeywords: fe.Sources[sourceIdx].MustIncludeAnyOf,
 			MustExcludeKeywords: fe.Sources[sourceIdx].MustExcludeAnyOf,
 			StatusPage:          fe.Sources[sourceIdx].StatusPage,
 			Interests:           fe.Sources[sourceIdx].Interests,
-		}
-
-		cfg.Sources[sourceIdx].IgnoreStoriesBefore, err = time.Parse(time.RFC3339, fe.Sources[sourceIdx].IgnoreStoriesBefore)
-		if err != nil {
-			dur, errDur := time.ParseDuration(fe.Sources[sourceIdx].IgnoreStoriesBefore)
-			if errDur != nil {
-				log.WarnErr("failed to parse time from IgnoreStoriesBefore parameter", err)
-				log.WarnErr("failed to parse duration from IgnoreStoriesBefore parameter", errDur)
-			}
-
-			cfg.Sources[sourceIdx].IgnoreStoriesBefore = time.Now().UTC().Add(-dur)
 		}
 	}
 

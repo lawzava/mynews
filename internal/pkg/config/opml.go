@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"mynews/internal/pkg/logger"
 	"os"
-	"time"
 )
 
 var errNoFeedsInOPML = errors.New("no feeds found in OPML file")
@@ -66,7 +65,7 @@ func importOPMLFile(opmlPath, configPath string, log *logger.Log) error {
 	for idx, url := range urls {
 		sources[idx] = fileStructureSource{
 			URL:                 url,
-			IgnoreStoriesBefore: time.Hour.String(),
+			IgnoreStoriesBefore: "",
 			MustIncludeAnyOf:    nil,
 			MustExcludeAnyOf:    nil,
 			StatusPage:          false,
@@ -74,19 +73,7 @@ func importOPMLFile(opmlPath, configPath string, log *logger.Log) error {
 		}
 	}
 
-	fileStruct := fileStructure{
-		//nolint:mnd // sample defaults
-		SleepDurationBetweenFeedParsing: (time.Minute * 5).String(),
-		SleepDurationBetweenBroadcasts:  defaultSleepDuration.String(),
-		StorageFilePath:                 "",
-		MetricsAddr:                     "",
-		Elements:                        []fileStructureElement{stdoutElement(sources)},
-		Scoring:                         nil,
-		LegacyBroadcastType:             "",
-		LegacyTelegramBotAPIToken:       "",
-		LegacyTelegramChatID:            "",
-		LegacySources:                   nil,
-	}
+	fileStruct := leanFileStructure(sources)
 
 	log.Info(fmt.Sprintf("Imported %d feeds from '%s'", len(urls), opmlPath))
 

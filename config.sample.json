@@ -2,11 +2,15 @@
 	"sleepDurationBetweenFeedParsing": "5m0s",
 	"sleepDurationBetweenBroadcasts": "10s",
 	"storageFilePath": "",
+	"metricsAddr": "",
 	"apps": [
 		{
 			"broadcastType": "stdout",
 			"telegramBotAPIToken": "",
 			"telegramChatID": "",
+			"discordWebhookURL": "",
+			"slackWebhookURL": "",
+			"webhookURL": "",
 			"sources": [
 				{
 					"url": "https://hnrss.org/newest.atom",
@@ -26,9 +30,24 @@
 				{
 					"url": "https://hnrss.org/newest.atom",
 					"ignoreStoriesBefore": "1h0m0s",
-					"mustIncludeAnyOf": null,
-					"mustExcludeAnyOf": null,
-					"statusPage": false
+					"interests": [
+						"open source software and developer tools"
+					]
+				}
+			]
+		},
+		{
+			"broadcastType": "telegram",
+			"telegramBotAPIToken": "your-bot-token",
+			"telegramChatID": "your-chat-id",
+			"digest": {
+				"every": "12h0m0s",
+				"topN": 10
+			},
+			"sources": [
+				{
+					"url": "https://hnrss.org/newest.atom",
+					"ignoreStoriesBefore": "24h0m0s"
 				}
 			]
 		}
@@ -42,6 +61,7 @@
 			"stock market and financial technology"
 		],
 		"modelName": "",
-		"modelDir": ""
+		"modelDir": "",
+		"minScore": 0
 	}
 }

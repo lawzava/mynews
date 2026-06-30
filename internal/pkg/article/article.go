@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"mynews/internal/pkg/safehttp"
 	"net/http"
 	"regexp"
 	"strings"
@@ -29,8 +30,7 @@ var (
 
 // FetchText downloads url and returns the concatenated text of its <p> elements.
 func FetchText(ctx context.Context, url string) (string, error) {
-	//nolint:exhaustruct // only the timeout matters here
-	client := http.Client{Timeout: fetchTimeout}
+	client := safehttp.Client(fetchTimeout)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {

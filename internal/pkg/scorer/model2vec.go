@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"mynews/internal/pkg/safehttp"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -79,9 +80,7 @@ func loadModel2Vec(ctx context.Context, cfg model2VecLoadConfig) (*model2Vec, er
 }
 
 func ensureModelFiles(ctx context.Context, cfg model2VecLoadConfig) error {
-	client := &http.Client{ //nolint:exhaustruct // timeout is the only non-default behavior required.
-		Timeout: modelDownloadTimeout,
-	}
+	client := safehttp.Client(modelDownloadTimeout)
 	fileNames := []string{modelFileName, tokenizerFileName, configFileName}
 
 	for _, fileName := range fileNames {

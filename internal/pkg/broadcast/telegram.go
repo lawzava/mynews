@@ -16,17 +16,21 @@ import (
 const (
 	telegramTimeout          = 30 * time.Second
 	maxTelegramResponseBytes = 1 << 20 // 1 MiB is ample for the Telegram API JSON response
+	telegramAPIBase          = "https://api.telegram.org"
+	telegramParseMode        = "MarkdownV2"
 )
 
 type Telegram struct {
 	BotAPIToken string
 	ChatID      string
+	baseURL     string // overridable for testing; defaults to the public API
 }
 
 func NewTelegramClient(botAPIToken, chatID string) (*Telegram, error) {
 	client := Telegram{
 		BotAPIToken: botAPIToken,
 		ChatID:      chatID,
+		baseURL:     telegramAPIBase,
 	}
 
 	err := validate.RequiredString(client.BotAPIToken, "Telegram API Token")
@@ -75,7 +79,7 @@ func (t Telegram) Send(message Story) error {
 		ReplyMarkup replyMarkup `json:"reply_markup"`
 	}{
 		ChatID:    t.ChatID,
-		ParseMode: "MarkdownV2",
+		ParseMode: telegramParseMode,
 		Text:      text,
 		ReplyMarkup: replyMarkup{
 			InlineKeyboard: [][]inlineKeyboard{
@@ -89,7 +93,7 @@ func (t Telegram) Send(message Story) error {
 		return fmt.Errorf("preparing request body: %w", err)
 	}
 
-	requestURL := fmt.Sprintf("https://api.Telegram.org/bot%s/sendMessage", t.BotAPIToken)
+	requestURL := fmt.Sprintf("%s/bot%s/sendMessage", t.baseURL, t.BotAPIToken)
 
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, requestURL, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")

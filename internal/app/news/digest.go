@@ -1,14 +1,19 @@
 package news
 
 import (
-	"context"
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/config"
-	"mynews/internal/pkg/logger"
 	"sort"
 	"sync"
 	"time"
 )
+
+// digestEntry pairs a buffered story with its dedup key so the digest can mark
+// it sent only after a successful flush.
+type digestEntry struct {
+	story   broadcast.Story
+	storyID string
+}
 
 // digest batches the highest-scoring stories for an app and emits them on a fixed
 // interval instead of broadcasting each story as it arrives.
@@ -18,7 +23,7 @@ type digest struct {
 	target broadcast.Broadcast
 
 	mutex     sync.Mutex
-	buffer    []broadcast.Story
+	buffer    []digestEntry
 	nextFlush time.Time
 }
 
@@ -48,20 +53,26 @@ func newDigest(cfg *config.DigestConfig, target broadcast.Broadcast, now time.Ti
 	}
 }
 
-// add buffers a story, keeping only the top-N highest-scoring entries so memory
-// stays bounded regardless of feed volume or interval length.
-func (d *digest) add(story broadcast.Story) {
+// add buffers a story, deduping by storyID and keeping only the top-N highest
+// scoring entries so memory stays bounded regardless of feed volume or interval.
+func (d *digest) add(entry *digestEntry) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	d.buffer = append(d.buffer, story)
+	for idx := range d.buffer {
+		if d.buffer[idx].storyID == entry.storyID {
+			return // already buffered this interval
+		}
+	}
+
+	d.buffer = append(d.buffer, *entry)
 	if len(d.buffer) <= d.topN {
 		return
 	}
 
 	lowestIdx := 0
 	for idx := range d.buffer {
-		if d.buffer[idx].Score < d.buffer[lowestIdx].Score {
+		if d.buffer[idx].story.Score < d.buffer[lowestIdx].story.Score {
 			lowestIdx = idx
 		}
 	}
@@ -69,24 +80,10 @@ func (d *digest) add(story broadcast.Story) {
 	d.buffer = append(d.buffer[:lowestIdx], d.buffer[lowestIdx+1:]...)
 }
 
-// flushDue emits the buffered stories (highest score first) and resets the timer
-// once the interval has elapsed; otherwise it does nothing.
-func (d *digest) flushDue(ctx context.Context, now time.Time, broadcastSleep time.Duration, log *logger.Log) {
-	stories := d.drainIfDue(now)
-
-	for idx := range stories {
-		err := d.target.Send(stories[idx])
-		if err != nil {
-			log.WarnErr("broadcasting digest story", err)
-		}
-
-		if !sleep(ctx, broadcastSleep) {
-			return
-		}
-	}
-}
-
-func (d *digest) drainIfDue(now time.Time) []broadcast.Story {
+// drainIfDue returns the buffered entries (highest score first) and resets the
+// timer once the interval has elapsed; otherwise it returns nil. Entries not
+// successfully sent are left unmarked and re-collected on the next cycle.
+func (d *digest) drainIfDue(now time.Time) []digestEntry {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -94,13 +91,13 @@ func (d *digest) drainIfDue(now time.Time) []broadcast.Story {
 		return nil
 	}
 
-	stories := d.buffer
+	entries := d.buffer
 	d.buffer = nil
 	d.nextFlush = now.Add(d.every)
 
-	sort.Slice(stories, func(left, right int) bool {
-		return stories[left].Score > stories[right].Score
+	sort.Slice(entries, func(left, right int) bool {
+		return entries[left].story.Score > entries[right].story.Score
 	})
 
-	return stories
+	return entries
 }

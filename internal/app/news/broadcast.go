@@ -55,6 +55,12 @@ func (n News) handleStory(
 	source *config.Source,
 	log *logger.Log,
 ) (bool, error) {
+	select {
+	case <-ctx.Done():
+		return true, nil // shutting down: stop before scoring/sending
+	default:
+	}
+
 	if !storyMatchesConfig(story, source) {
 		return false, nil
 	}
@@ -85,10 +91,11 @@ func (n News) handleStory(
 	}
 
 	if dig != nil {
-		// Buffer for the next digest and mark seen so it is collected only once.
-		dig.add(message)
+		// Buffer for the next digest; it is marked sent only after a successful
+		// flush, so an unsent story is re-collected (and re-ranked) next cycle.
+		dig.add(&digestEntry{story: message, storyID: storyID})
 
-		return false, n.markSent(broadcastClient, storyID)
+		return false, nil
 	}
 
 	err = broadcastClient.Send(message)

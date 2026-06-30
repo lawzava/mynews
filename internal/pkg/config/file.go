@@ -119,8 +119,8 @@ func durationOr(value string, fallback time.Duration, log *logger.Log) time.Dura
 		return fallback
 	}
 
-	if duration == 0 {
-		return fallback
+	if duration <= 0 {
+		return fallback // zero or negative would busy-loop the runner
 	}
 
 	return duration

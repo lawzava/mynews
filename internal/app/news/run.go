@@ -48,12 +48,33 @@ func (n News) Run(ctx context.Context, log *logger.Log) error {
 // parseApp fetches every source concurrently, then broadcasts results in source
 // order (preserving the global broadcast throttle). Stale dedup keys are pruned
 // only when the whole app parsed cleanly and we are not shutting down.
+// flushDigests emits any due digests, recording each story as sent only after a
+// successful broadcast so a failed or interrupted flush is retried next cycle.
 func (n News) flushDigests(ctx context.Context, log *logger.Log) {
 	now := time.Now()
 
 	for idx := range n.digests {
-		if n.digests[idx] != nil {
-			n.digests[idx].flushDue(ctx, now, n.cfg.SleepDurationBetweenBroadcasts, log)
+		dig := n.digests[idx]
+		if dig == nil {
+			continue
+		}
+
+		for _, entry := range dig.drainIfDue(now) {
+			err := dig.target.Send(entry.story)
+			if err != nil {
+				log.WarnErr("broadcasting digest story", err)
+
+				continue // leave unmarked so it is retried next cycle
+			}
+
+			err = n.markSent(dig.target, entry.storyID)
+			if err != nil {
+				log.WarnErr("registering digest story as sent", err)
+			}
+
+			if !sleep(ctx, n.cfg.SleepDurationBetweenBroadcasts) {
+				return
+			}
 		}
 	}
 }

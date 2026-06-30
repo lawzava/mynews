@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/logger"
@@ -15,6 +16,8 @@ const (
 	sampleFeedURL       = "https://hnrss.org/newest.atom"
 	stdoutBroadcastType = "stdout"
 )
+
+var errDuplicateBroadcast = errors.New("duplicate broadcast target across apps")
 
 type fileStructure struct {
 	SleepDurationBetweenFeedParsing string `json:"sleepDurationBetweenFeedParsing,omitempty"`
@@ -151,7 +154,24 @@ func parseIgnoreBefore(value string, log *logger.Log) time.Time {
 	return time.Now().UTC().Add(-defaultIgnoreStoriesBefore)
 }
 
-//nolint:cyclop // allow higher complexity on config setup for now
+// resolveStorageFilePath picks the storage path from the config, then the CLI
+// flag, then the env var, then the default location.
+func resolveStorageFilePath(configured, cliFlag string) string {
+	if configured != "" {
+		return configured
+	}
+
+	if cliFlag != "" {
+		return cliFlag
+	}
+
+	if env := os.Getenv(storageFilePathEnvironmentVariable); env != "" {
+		return env
+	}
+
+	return os.ExpandEnv(storageFileDefaultLocation)
+}
+
 func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Config, error) {
 	var (
 		config Config
@@ -162,20 +182,8 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 	config.SleepDurationBetweenBroadcasts = durationOr(f.SleepDurationBetweenBroadcasts, defaultBroadcastInterval, log)
 
 	config.Store = storage.New()
-	config.StorageFilePath = f.StorageFilePath
 	config.MetricsAddr = f.MetricsAddr
-
-	if config.StorageFilePath == "" {
-		config.StorageFilePath = storageFilePath
-	}
-
-	if config.StorageFilePath == "" {
-		config.StorageFilePath = os.ExpandEnv(storageFileDefaultLocation)
-
-		if e := os.Getenv(storageFilePathEnvironmentVariable); e != "" {
-			config.StorageFilePath = e
-		}
-	}
+	config.StorageFilePath = resolveStorageFilePath(f.StorageFilePath, storageFilePath)
 
 	if len(f.Elements) == 0 {
 		f.Elements = append(f.Elements, fileStructureElement{
@@ -190,6 +198,8 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 		})
 	}
 
+	seenBroadcasts := make(map[string]bool, len(f.Elements))
+
 	for idx := range f.Elements {
 		var elementConfig App
 
@@ -197,6 +207,15 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse config element: %w", err)
 		}
+
+		// Apps share dedup/cleanup state per broadcast target, so two apps with
+		// the same target would corrupt each other's seen-story tracking.
+		name := elementConfig.Broadcast.Name()
+		if seenBroadcasts[name] {
+			return nil, fmt.Errorf("%w: %q (merge their sources into one app)", errDuplicateBroadcast, name)
+		}
+
+		seenBroadcasts[name] = true
 
 		config.Apps = append(config.Apps, elementConfig)
 	}

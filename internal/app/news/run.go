@@ -22,9 +22,11 @@ const (
 // nil on a clean shutdown.
 func (n News) Run(ctx context.Context, log *logger.Log) error {
 	for {
-		for _, app := range n.cfg.Apps {
-			n.parseApp(ctx, app, log)
+		for idx := range n.cfg.Apps {
+			n.parseApp(ctx, n.cfg.Apps[idx], n.digests[idx], log)
 		}
+
+		n.flushDigests(ctx, log)
 
 		n.metrics.CycleCompleted()
 
@@ -46,7 +48,17 @@ func (n News) Run(ctx context.Context, log *logger.Log) error {
 // parseApp fetches every source concurrently, then broadcasts results in source
 // order (preserving the global broadcast throttle). Stale dedup keys are pruned
 // only when the whole app parsed cleanly and we are not shutting down.
-func (n News) parseApp(ctx context.Context, app config.App, log *logger.Log) {
+func (n News) flushDigests(ctx context.Context, log *logger.Log) {
+	now := time.Now()
+
+	for idx := range n.digests {
+		if n.digests[idx] != nil {
+			n.digests[idx].flushDue(ctx, now, n.cfg.SleepDurationBetweenBroadcasts, log)
+		}
+	}
+}
+
+func (n News) parseApp(ctx context.Context, app config.App, dig *digest, log *logger.Log) {
 	parsingStartedAt := time.Now()
 	sourceHadIssues := false
 
@@ -67,7 +79,7 @@ func (n News) parseApp(ctx context.Context, app config.App, log *logger.Log) {
 
 		n.metrics.FeedParsed()
 
-		err := n.broadcastFeed(ctx, app.Broadcast, result.items, result.source, log)
+		err := n.broadcastFeed(ctx, app.Broadcast, dig, result.items, result.source, log)
 		if err != nil {
 			log.WarnErr(fmt.Sprintf("broadcasting items for source '%s'", result.source.URL), err)
 

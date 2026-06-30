@@ -80,22 +80,12 @@ func importOPMLFile(opmlPath, configPath string, log *logger.Log) error {
 		SleepDurationBetweenBroadcasts:  defaultSleepDuration.String(),
 		StorageFilePath:                 "",
 		MetricsAddr:                     "",
-		Elements: []fileStructureElement{
-			{
-				BroadcastType:       stdoutBroadcastType,
-				Sources:             sources,
-				TelegramBotAPIToken: "",
-				TelegramChatID:      "",
-				DiscordWebhookURL:   "",
-				SlackWebhookURL:     "",
-				WebhookURL:          "",
-			},
-		},
-		Scoring:                   nil,
-		LegacyBroadcastType:       "",
-		LegacyTelegramBotAPIToken: "",
-		LegacyTelegramChatID:      "",
-		LegacySources:             nil,
+		Elements:                        []fileStructureElement{stdoutElement(sources)},
+		Scoring:                         nil,
+		LegacyBroadcastType:             "",
+		LegacyTelegramBotAPIToken:       "",
+		LegacyTelegramChatID:            "",
+		LegacySources:                   nil,
 	}
 
 	log.Info(fmt.Sprintf("Imported %d feeds from '%s'", len(urls), opmlPath))

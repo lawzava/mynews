@@ -55,7 +55,14 @@ type fileStructureElement struct {
 	SlackWebhookURL     string `json:"slackWebhookURL,omitempty"`
 	WebhookURL          string `json:"webhookURL,omitempty"`
 
+	Digest *fileStructureDigest `json:"digest,omitempty"`
+
 	Sources []fileStructureSource `json:"sources"`
+}
+
+type fileStructureDigest struct {
+	Every string `json:"every"`
+	TopN  int    `json:"topN"`
 }
 
 type fileStructureSource struct {
@@ -143,14 +150,15 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 			DiscordWebhookURL:   "",
 			SlackWebhookURL:     "",
 			WebhookURL:          "",
+			Digest:              nil,
 			Sources:             f.LegacySources,
 		})
 	}
 
-	for _, fe := range f.Elements {
+	for idx := range f.Elements {
 		var elementConfig App
 
-		elementConfig, err = fe.prepareConfigElement(log)
+		elementConfig, err = f.Elements[idx].prepareConfigElement(log)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse config element: %w", err)
 		}
@@ -209,17 +217,7 @@ func createSampleFile(filePath string) error {
 		SleepDurationBetweenBroadcasts: (time.Second * 10).String(),
 		StorageFilePath:                "",
 		MetricsAddr:                    "",
-		Elements: []fileStructureElement{
-			{
-				BroadcastType:       stdoutBroadcastType,
-				Sources:             sources,
-				TelegramBotAPIToken: "",
-				TelegramChatID:      "",
-				DiscordWebhookURL:   "",
-				SlackWebhookURL:     "",
-				WebhookURL:          "",
-			},
-		},
+		Elements:                       []fileStructureElement{stdoutElement(sources)},
 		Scoring: &fileStructureScoring{
 			Enabled:  false,
 			Provider: "embedding",
@@ -239,6 +237,20 @@ func createSampleFile(filePath string) error {
 	}
 
 	return writeConfigFile(filePath, &defaultFileStructure)
+}
+
+// stdoutElement builds a stdout broadcast element with the given sources.
+func stdoutElement(sources []fileStructureSource) fileStructureElement {
+	return fileStructureElement{
+		BroadcastType:       stdoutBroadcastType,
+		Sources:             sources,
+		TelegramBotAPIToken: "",
+		TelegramChatID:      "",
+		DiscordWebhookURL:   "",
+		SlackWebhookURL:     "",
+		WebhookURL:          "",
+		Digest:              nil,
+	}
 }
 
 // writeConfigFile writes fileStruct as indented JSON to filePath, refusing to
@@ -306,7 +318,31 @@ func (fe *fileStructureElement) prepareConfigElement(log *logger.Log) (App, erro
 		return App{}, fmt.Errorf("failed to create broadcast client: %w", err)
 	}
 
+	cfg.Digest, err = fe.digestConfig()
+	if err != nil {
+		return App{}, err
+	}
+
 	return cfg, nil
+}
+
+// digestConfig parses the optional digest settings for an element. A nil result
+// means immediate (non-digest) broadcasting.
+func (fe *fileStructureElement) digestConfig() (*DigestConfig, error) {
+	if fe.Digest == nil {
+		return nil, nil //nolint:nilnil // nil config legitimately means "no digest"
+	}
+
+	every, err := time.ParseDuration(fe.Digest.Every)
+	if err != nil {
+		return nil, fmt.Errorf("invalid digest interval %q: %w", fe.Digest.Every, err)
+	}
+
+	if every <= 0 || fe.Digest.TopN <= 0 {
+		return nil, nil //nolint:nilnil // incomplete digest config disables it
+	}
+
+	return &DigestConfig{Every: every, TopN: fe.Digest.TopN}, nil
 }
 
 // broadcastClient builds the broadcast target for an element. The type is matched

@@ -49,6 +49,12 @@ type ScoringConfig struct {
 type App struct {
 	Sources   []*Source
 	Broadcast broadcast.Broadcast
+	Digest    *DigestConfig // when set, batch the top-N stories per interval
+}
+
+type DigestConfig struct {
+	Every time.Duration // how often to emit a digest
+	TopN  int           // how many highest-scoring stories to include
 }
 
 const (

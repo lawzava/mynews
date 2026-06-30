@@ -23,62 +23,91 @@ const scoringTimeout = 30 * time.Second
 func (n News) broadcastFeed(
 	ctx context.Context,
 	broadcastClient broadcast.Broadcast,
+	dig *digest,
 	stories []parser.Item,
 	source *config.Source,
 	log *logger.Log,
 ) error {
-	for _, story := range stories {
-		if !storyMatchesConfig(&story, source) {
-			continue
-		}
-
-		storyID := buildStoryID(story.PublishedAt, story.Link, source.StatusPage)
-
-		storyWasAlreadySent, err := n.cfg.Store.KeyExists(broadcastClient.Name(), storyID)
+	for storyIdx := range stories {
+		stop, err := n.handleStory(ctx, broadcastClient, dig, &stories[storyIdx], source, log)
 		if err != nil {
-			return fmt.Errorf("checking if story was already sent: %w", err)
+			return err
 		}
 
-		if storyWasAlreadySent {
-			continue
-		}
-
-		scored := n.scoreStory(ctx, source, story.Title, log)
-
-		if !scored.passes {
-			// Below the relevance threshold: record as seen so it is not
-			// re-scored every cycle, but do not broadcast it.
-			err = n.cfg.Store.PutKey(broadcastClient.Name(), storyID)
-			if err != nil {
-				return fmt.Errorf("registering story as sent: %w", err)
-			}
-
-			continue
-		}
-
-		newBroadcastMessage := broadcast.Story{
-			Title:   story.Title,
-			URL:     story.Link,
-			Summary: cleanSummary(story.Description),
-			Score:   scored.value,
-			Reason:  scored.reason,
-		}
-
-		err = broadcastClient.Send(newBroadcastMessage)
-		if err != nil {
-			return fmt.Errorf("broadcasting story: %w", err)
-		}
-
-		// Record the story as sent only after a successful broadcast, so a
-		// transient Send failure is retried on the next parse cycle.
-		err = n.cfg.Store.PutKey(broadcastClient.Name(), storyID)
-		if err != nil {
-			return fmt.Errorf("registering story as sent: %w", err)
-		}
-
-		if !sleep(ctx, n.cfg.SleepDurationBetweenBroadcasts) {
+		if stop {
 			return nil
 		}
+	}
+
+	return nil
+}
+
+// handleStory processes a single story: filter, dedup, score, then either buffer
+// it for the digest or broadcast it immediately. It reports stop=true when the
+// run context was canceled mid-broadcast (shutdown).
+func (n News) handleStory(
+	ctx context.Context,
+	broadcastClient broadcast.Broadcast,
+	dig *digest,
+	story *parser.Item,
+	source *config.Source,
+	log *logger.Log,
+) (bool, error) {
+	if !storyMatchesConfig(story, source) {
+		return false, nil
+	}
+
+	storyID := buildStoryID(story.PublishedAt, story.Link, source.StatusPage)
+
+	storyWasAlreadySent, err := n.cfg.Store.KeyExists(broadcastClient.Name(), storyID)
+	if err != nil {
+		return false, fmt.Errorf("checking if story was already sent: %w", err)
+	}
+
+	if storyWasAlreadySent {
+		return false, nil
+	}
+
+	scored := n.scoreStory(ctx, source, story.Title, log)
+	if !scored.passes {
+		// Below the threshold: record as seen so it is not re-scored each cycle.
+		return false, n.markSent(broadcastClient, storyID)
+	}
+
+	message := broadcast.Story{
+		Title:   story.Title,
+		URL:     story.Link,
+		Summary: cleanSummary(story.Description),
+		Score:   scored.value,
+		Reason:  scored.reason,
+	}
+
+	if dig != nil {
+		// Buffer for the next digest and mark seen so it is collected only once.
+		dig.add(message)
+
+		return false, n.markSent(broadcastClient, storyID)
+	}
+
+	err = broadcastClient.Send(message)
+	if err != nil {
+		return false, fmt.Errorf("broadcasting story: %w", err)
+	}
+
+	// Record the story as sent only after a successful broadcast, so a transient
+	// Send failure is retried on the next parse cycle.
+	err = n.markSent(broadcastClient, storyID)
+	if err != nil {
+		return false, err
+	}
+
+	return !sleep(ctx, n.cfg.SleepDurationBetweenBroadcasts), nil
+}
+
+func (n News) markSent(broadcastClient broadcast.Broadcast, storyID string) error {
+	err := n.cfg.Store.PutKey(broadcastClient.Name(), storyID)
+	if err != nil {
+		return fmt.Errorf("registering story as sent: %w", err)
 	}
 
 	return nil

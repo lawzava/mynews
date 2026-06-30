@@ -14,6 +14,7 @@ type News struct {
 	cfg           *config.Config
 	scorer        scorer.Scorer
 	sourceScorers map[*config.Source]scorer.Scorer
+	digests       []*digest
 	metrics       *metrics.Metrics
 }
 
@@ -23,6 +24,7 @@ func New(cfg *config.Config, met *metrics.Metrics, log *logger.Log) (News, error
 		cfg:           cfg,
 		scorer:        nil,
 		sourceScorers: nil,
+		digests:       buildDigests(cfg),
 		metrics:       met,
 	}
 

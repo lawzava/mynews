@@ -1,7 +1,10 @@
 //nolint:testpackage // exercises unexported helpers (normalizeURL, cleanSummary)
 package news
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestNormalizeURL(t *testing.T) {
 	t.Parallel()
@@ -41,5 +44,28 @@ func TestCleanSummary(t *testing.T) {
 	want := "Hello & world of news"
 	if got != want {
 		t.Errorf("cleanSummary() = %q, want %q", got, want)
+	}
+}
+
+func TestCleanSummaryStripsAggregatorBoilerplate(t *testing.T) {
+	t.Parallel()
+
+	// A typical hnrss description: it must not leak the comments link, points,
+	// comment count, or that it came from HackerNews.
+	raw := "A real summary sentence. " +
+		"Article URL: https://example.com/a " +
+		"Comments URL: https://news.ycombinator.com/item?id=123 " +
+		"Points: 42 # Comments: 7"
+
+	got := cleanSummary(raw)
+
+	if got != "A real summary sentence." {
+		t.Errorf("cleanSummary() = %q, want only the real sentence", got)
+	}
+
+	for _, leak := range []string{"news.ycombinator.com", "Points", "Comments URL", "# Comments"} {
+		if strings.Contains(got, leak) {
+			t.Errorf("summary leaks %q: %q", leak, got)
+		}
 	}
 }

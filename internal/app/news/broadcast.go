@@ -196,10 +196,17 @@ func (n News) storySummary(ctx context.Context, story *parser.Item, log *logger.
 
 const maxSummaryLen = 280
 
-var htmlTagRe = regexp.MustCompile(`<[^>]*>`)
+var (
+	htmlTagRe = regexp.MustCompile(`<[^>]*>`)
 
-// cleanSummary strips HTML tags and entities from a feed description, collapses
-// whitespace, and truncates to a short single-line snippet for broadcasting.
+	// feedBoilerplateRe matches aggregator metadata (notably hnrss) so we don't
+	// leak the originating site, its comment links, points, or comment counts.
+	feedBoilerplateRe = regexp.MustCompile(
+		`(?i)\s*(?:article url|comments url)\s*:\s*\S+|\s*points\s*:\s*\d+|\s*#\s*comments\s*:\s*\d+`)
+)
+
+// cleanSummary strips HTML, aggregator boilerplate, and whitespace from a feed
+// description, then truncates to a short single-line snippet for broadcasting.
 func cleanSummary(raw string) string {
 	if raw == "" {
 		return ""
@@ -207,6 +214,7 @@ func cleanSummary(raw string) string {
 
 	text := htmlTagRe.ReplaceAllString(raw, " ")
 	text = html.UnescapeString(text)
+	text = feedBoilerplateRe.ReplaceAllString(text, " ")
 	text = strings.Join(strings.Fields(text), " ")
 
 	runes := []rune(text)

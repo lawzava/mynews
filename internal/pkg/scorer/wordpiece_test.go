@@ -74,3 +74,35 @@ func assertTokenIDs(t *testing.T, got, want []int) {
 		t.Fatalf("ids = %v, want %v", got, want)
 	}
 }
+
+func TestStripAccentMarks(t *testing.T) {
+	t.Parallel()
+
+	const (
+		ascii  = "hello world"
+		nordic = "smørrebrød" // ø/ð have no NFD decomposition, so they stay
+	)
+
+	// Input is already lowercased by the time strip_accents runs in normalize.
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "ascii unchanged", in: ascii, want: ascii},
+		{name: "french", in: "café résumé naïve", want: "cafe resume naive"},
+		{name: "spanish", in: "señor jalapeño", want: "senor jalapeno"},
+		{name: "german umlauts", in: "zürich köln", want: "zurich koln"},
+		{name: "non-decomposable preserved", in: nordic, want: nordic},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := stripAccentMarks(testCase.in); got != testCase.want {
+				t.Errorf("stripAccentMarks(%q) = %q, want %q", testCase.in, got, testCase.want)
+			}
+		})
+	}
+}

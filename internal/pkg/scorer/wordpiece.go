@@ -8,8 +8,6 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"golang.org/x/text/unicode/norm"
 )
 
 const (
@@ -19,6 +17,32 @@ const (
 )
 
 var errUnkTokenMissing = errors.New("unk token missing from vocab")
+
+// latin1AccentFold maps the decomposable Latin-1 accented letters to their base
+// form, replicating BERT's strip_accents (NFD + drop combining marks) for the
+// characters that actually occur in this English-centric model's inputs without
+// pulling in a full Unicode normalization dependency. Letters with no canonical
+// decomposition (æ, ø, ß, þ, ð) are intentionally left untouched, matching NFD.
+//
+//nolint:gochecknoglobals // static transliteration table
+var latin1AccentFold = map[rune]rune{
+	'À': 'A', 'Á': 'A', 'Â': 'A', 'Ã': 'A', 'Ä': 'A', 'Å': 'A',
+	'Ç': 'C',
+	'È': 'E', 'É': 'E', 'Ê': 'E', 'Ë': 'E',
+	'Ì': 'I', 'Í': 'I', 'Î': 'I', 'Ï': 'I',
+	'Ñ': 'N',
+	'Ò': 'O', 'Ó': 'O', 'Ô': 'O', 'Õ': 'O', 'Ö': 'O',
+	'Ù': 'U', 'Ú': 'U', 'Û': 'U', 'Ü': 'U',
+	'Ý': 'Y',
+	'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'å': 'a',
+	'ç': 'c',
+	'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e',
+	'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i',
+	'ñ': 'n',
+	'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o',
+	'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u',
+	'ý': 'y', 'ÿ': 'y',
+}
 
 type wordPieceTokenizer struct {
 	vocab              map[string]int
@@ -179,9 +203,16 @@ func spaceCJKChars(text string) string {
 
 func stripAccentMarks(text string) string {
 	var builder strings.Builder
+	builder.Grow(len(text))
 
-	for _, tokenRune := range norm.NFD.String(text) {
+	for _, tokenRune := range text {
 		if unicode.Is(unicode.Mn, tokenRune) {
+			continue // drop combining marks from already-decomposed input
+		}
+
+		if folded, ok := latin1AccentFold[tokenRune]; ok {
+			builder.WriteRune(folded)
+
 			continue
 		}
 

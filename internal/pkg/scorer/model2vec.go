@@ -2,6 +2,8 @@ package scorer
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,6 +25,7 @@ const (
 	modelDownloadTimeout = 5 * time.Minute
 	modelUserAgent       = "mynews-model2vec/1.0"
 	maxModelFileBytes    = 600 << 20 // 600 MiB cap per model artifact
+	modelNameHashLen     = 12
 )
 
 var (
@@ -92,7 +95,8 @@ func loadModel2Vec(ctx context.Context, cfg model2VecLoadConfig) (*model2Vec, er
 }
 
 // sanitizeModelName makes a HuggingFace model id safe to use as a directory
-// component (no path separators or parent references).
+// component (no path separators or parent references). A short hash of the
+// original name is appended so distinct names that sanitize alike don't collide.
 func sanitizeModelName(name string) string {
 	safe := strings.Map(func(r rune) rune {
 		switch {
@@ -104,10 +108,12 @@ func sanitizeModelName(name string) string {
 	}, name)
 
 	if safe == "" {
-		return "model"
+		safe = "model"
 	}
 
-	return safe
+	sum := sha256.Sum256([]byte(name))
+
+	return safe + "-" + hex.EncodeToString(sum[:])[:modelNameHashLen]
 }
 
 func ensureModelFiles(ctx context.Context, cacheDir, modelName string) error {

@@ -150,14 +150,19 @@ func decodeEmbeddingTensor(tensorData []byte, tensor safetensorsTensor) (*embedd
 	}
 
 	rawValues := tensorData[startOffset:endOffset]
-
-	// Compute in int64 so a crafted shape cannot overflow into a false match.
-	expectedBytes := int64(tensor.Shape[0]) * int64(tensor.Shape[1]) * bytesPerFloat32
-	if int64(len(rawValues)) != expectedBytes {
-		return nil, fmt.Errorf("%w: %d != %d", errTensorByteLengthMismatched, len(rawValues), expectedBytes)
+	if len(rawValues)%bytesPerFloat32 != 0 {
+		return nil, fmt.Errorf("%w: %d bytes not float32-aligned", errTensorByteLengthMismatched, len(rawValues))
 	}
 
-	values := make([]float32, tensor.Shape[0]*tensor.Shape[1])
+	// valueCount is bounded by the (capped) file size; verify it equals
+	// Shape[0]*Shape[1] using division so a crafted shape cannot overflow.
+	valueCount := len(rawValues) / bytesPerFloat32
+	if valueCount%tensor.Shape[1] != 0 || valueCount/tensor.Shape[1] != tensor.Shape[0] {
+		return nil, fmt.Errorf("%w: %d values for shape %dx%d",
+			errTensorByteLengthMismatched, valueCount, tensor.Shape[0], tensor.Shape[1])
+	}
+
+	values := make([]float32, valueCount)
 	for valueIdx := range values {
 		startByte := valueIdx * bytesPerFloat32
 		bits := binary.LittleEndian.Uint32(rawValues[startByte : startByte+bytesPerFloat32])

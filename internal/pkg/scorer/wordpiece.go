@@ -75,8 +75,10 @@ func loadWordPieceTokenizer(tokenizerPath string) (*wordPieceTokenizer, error) {
 	lowercase := boolValue(parsed.Normalizer.Lowercase, true)
 	stripAccents := boolValue(parsed.Normalizer.StripAccents, lowercase)
 
+	// Clamp to the HF default ceiling so a malicious tokenizer cannot raise the
+	// per-word limit and restore the O(n^2) matching cost.
 	maxCharsPerWord := parsed.Model.MaxInputCharsPerWord
-	if maxCharsPerWord <= 0 {
+	if maxCharsPerWord <= 0 || maxCharsPerWord > defaultMaxCharsPerWord {
 		maxCharsPerWord = defaultMaxCharsPerWord
 	}
 

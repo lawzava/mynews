@@ -59,15 +59,17 @@ func (n News) flushDigests(ctx context.Context, log *logger.Log) {
 			continue
 		}
 
-		for _, entry := range dig.drainIfDue(now) {
-			err := dig.target.Send(entry.story)
+		entries := dig.drainIfDue(now)
+		for idx := range entries {
+			err := dig.target.Send(entries[idx].story)
 			if err != nil {
 				log.WarnErr("broadcasting digest story", err)
+				dig.add(&entries[idx]) // requeue for the next flush instead of dropping
 
-				continue // leave unmarked so it is retried next cycle
+				continue
 			}
 
-			err = n.markSent(dig.target, entry.storyID)
+			err = n.markSent(dig.target, entries[idx].storyID)
 			if err != nil {
 				log.WarnErr("registering digest story as sent", err)
 			}

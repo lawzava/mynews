@@ -61,7 +61,11 @@ func (d *digest) add(entry *digestEntry) {
 
 	for idx := range d.buffer {
 		if d.buffer[idx].storyID == entry.storyID {
-			return // already buffered this interval
+			if entry.story.Score > d.buffer[idx].story.Score {
+				d.buffer[idx] = *entry // keep the higher-scoring view of the story
+			}
+
+			return
 		}
 	}
 

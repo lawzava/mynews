@@ -18,6 +18,7 @@ func TestClientBlocksNonPublicAddresses(t *testing.T) {
 		"http://10.0.0.1/",                         // private
 		"http://192.168.1.1/",                      // private
 		"http://169.254.169.254/latest/meta-data/", // cloud metadata (link-local)
+		"http://100.64.0.1/",                       // CGNAT / cloud carrier
 		"http://0.0.0.0/",                          // unspecified
 	}
 

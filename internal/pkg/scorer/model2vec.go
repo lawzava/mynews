@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -21,11 +22,13 @@ const (
 
 	modelDownloadTimeout = 5 * time.Minute
 	modelUserAgent       = "mynews-model2vec/1.0"
+	maxModelFileBytes    = 600 << 20 // 600 MiB cap per model artifact
 )
 
 var (
 	errHiddenDimMismatch       = errors.New("config hidden_dim does not match embedding dim")
 	errUnexpectedDownloadState = errors.New("unexpected model download status")
+	errModelFileTooLarge       = errors.New("model file exceeds size limit")
 )
 
 type model2Vec struct {
@@ -47,17 +50,26 @@ type model2VecConfigFile struct {
 }
 
 func loadModel2Vec(ctx context.Context, cfg model2VecLoadConfig) (*model2Vec, error) {
-	err := ensureModelFiles(ctx, cfg)
+	// Namespace the cache by model name so changing models does not silently
+	// reuse a different model's files, and a crafted name cannot escape the dir.
+	cacheDir := filepath.Join(cfg.modelDir, sanitizeModelName(cfg.modelName))
+
+	err := os.MkdirAll(cacheDir, defaultModelDirPerm)
+	if err != nil {
+		return nil, fmt.Errorf("create model cache dir: %w", err)
+	}
+
+	err = ensureModelFiles(ctx, cacheDir, cfg.modelName)
 	if err != nil {
 		return nil, err
 	}
 
-	modelConfig, err := loadModel2VecConfig(filepath.Join(cfg.modelDir, configFileName))
+	modelConfig, err := loadModel2VecConfig(filepath.Join(cacheDir, configFileName))
 	if err != nil {
 		return nil, err
 	}
 
-	matrix, _, err := loadSafetensorsEmbeddings(filepath.Join(cfg.modelDir, modelFileName))
+	matrix, _, err := loadSafetensorsEmbeddings(filepath.Join(cacheDir, modelFileName))
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +78,7 @@ func loadModel2Vec(ctx context.Context, cfg model2VecLoadConfig) (*model2Vec, er
 		return nil, fmt.Errorf("%w: %d != %d", errHiddenDimMismatch, modelConfig.HiddenDim, matrix.dim)
 	}
 
-	tokenizer, err := loadWordPieceTokenizer(filepath.Join(cfg.modelDir, tokenizerFileName))
+	tokenizer, err := loadWordPieceTokenizer(filepath.Join(cacheDir, tokenizerFileName))
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +91,26 @@ func loadModel2Vec(ctx context.Context, cfg model2VecLoadConfig) (*model2Vec, er
 	}, nil
 }
 
-func ensureModelFiles(ctx context.Context, cfg model2VecLoadConfig) error {
+// sanitizeModelName makes a HuggingFace model id safe to use as a directory
+// component (no path separators or parent references).
+func sanitizeModelName(name string) string {
+	safe := strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-':
+			return r
+		default:
+			return '_'
+		}
+	}, name)
+
+	if safe == "" {
+		return "model"
+	}
+
+	return safe
+}
+
+func ensureModelFiles(ctx context.Context, cacheDir, modelName string) error {
 	client := safehttp.Client(modelDownloadTimeout)
 	fileNames := []string{modelFileName, tokenizerFileName, configFileName}
 
@@ -89,7 +120,7 @@ func ensureModelFiles(ctx context.Context, cfg model2VecLoadConfig) error {
 			return fmt.Errorf("ensure model files: %w", ctxErr)
 		}
 
-		filePath := filepath.Join(cfg.modelDir, fileName)
+		filePath := filepath.Join(cacheDir, fileName)
 
 		_, statErr := os.Stat(filePath)
 		if statErr == nil {
@@ -100,7 +131,7 @@ func ensureModelFiles(ctx context.Context, cfg model2VecLoadConfig) error {
 			return fmt.Errorf("stat model file %q: %w", filePath, statErr)
 		}
 
-		err := downloadModelFile(ctx, client, cfg.modelName, fileName, filePath)
+		err := downloadModelFile(ctx, client, modelName, fileName, filePath)
 		if err != nil {
 			return err
 		}
@@ -153,7 +184,11 @@ func writeResponseAtomically(body io.Reader, filePath string) error {
 		}
 	}()
 
-	_, err = io.Copy(tempFile, body)
+	written, err := io.Copy(tempFile, io.LimitReader(body, maxModelFileBytes+1))
+	if err == nil && written > maxModelFileBytes {
+		err = errModelFileTooLarge
+	}
+
 	if err != nil {
 		closeErr := tempFile.Close()
 		if closeErr != nil {

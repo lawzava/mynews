@@ -68,9 +68,17 @@ func TestEmbeddingScorerUsesBestInterest(t *testing.T) {
 func writeTestModel(t *testing.T, modelDir string) {
 	t.Helper()
 
-	writeTestJSON(t, filepath.Join(modelDir, "config.json"), `{"hidden_dim":2,"normalize":true}`)
-	writeTestTokenizerFile(t, filepath.Join(modelDir, "tokenizer.json"))
-	writeTestSafetensors(t, filepath.Join(modelDir, "model.safetensors"), "embeddings", []int{4, 2}, []float32{
+	// The loader namespaces the cache by model name, so place the fixture there.
+	cacheDir := filepath.Join(modelDir, sanitizeModelName(testModelName))
+
+	err := os.MkdirAll(cacheDir, defaultModelDirPerm)
+	if err != nil {
+		t.Fatalf("mkdir cache dir: %v", err)
+	}
+
+	writeTestJSON(t, filepath.Join(cacheDir, "config.json"), `{"hidden_dim":2,"normalize":true}`)
+	writeTestTokenizerFile(t, filepath.Join(cacheDir, "tokenizer.json"))
+	writeTestSafetensors(t, filepath.Join(cacheDir, "model.safetensors"), "embeddings", []int{4, 2}, []float32{
 		0, 0,
 		0, 0,
 		1, 0,

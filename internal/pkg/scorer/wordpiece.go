@@ -12,13 +12,18 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-const wordPiecePrefix = "##"
+const (
+	wordPiecePrefix        = "##"
+	defaultMaxCharsPerWord = 100   // HuggingFace WordPiece default
+	maxTokenizerInputRunes = 20000 // hard cap so a giant title cannot stall scoring
+)
 
 var errUnkTokenMissing = errors.New("unk token missing from vocab")
 
 type wordPieceTokenizer struct {
 	vocab              map[string]int
 	unkTokenID         int
+	maxCharsPerWord    int
 	lowercase          bool
 	stripAccents       bool
 	cleanText          bool
@@ -45,6 +50,8 @@ type tokenizerModelJSON struct {
 	Vocab map[string]int `json:"vocab"`
 
 	UnkToken string `json:"unk_token"` //nolint:tagliatelle // HuggingFace tokenizer JSON uses snake_case.
+
+	MaxInputCharsPerWord int `json:"max_input_chars_per_word"` //nolint:tagliatelle // HF snake_case
 }
 
 func loadWordPieceTokenizer(tokenizerPath string) (*wordPieceTokenizer, error) {
@@ -68,9 +75,15 @@ func loadWordPieceTokenizer(tokenizerPath string) (*wordPieceTokenizer, error) {
 	lowercase := boolValue(parsed.Normalizer.Lowercase, true)
 	stripAccents := boolValue(parsed.Normalizer.StripAccents, lowercase)
 
+	maxCharsPerWord := parsed.Model.MaxInputCharsPerWord
+	if maxCharsPerWord <= 0 {
+		maxCharsPerWord = defaultMaxCharsPerWord
+	}
+
 	return &wordPieceTokenizer{
 		vocab:              parsed.Model.Vocab,
 		unkTokenID:         unkTokenID,
+		maxCharsPerWord:    maxCharsPerWord,
 		lowercase:          lowercase,
 		stripAccents:       stripAccents,
 		cleanText:          boolValue(parsed.Normalizer.CleanText, true),
@@ -87,6 +100,10 @@ func boolValue(value *bool, fallback bool) bool {
 }
 
 func (tokenizer *wordPieceTokenizer) tokenIDs(text string) []int {
+	if len([]rune(text)) > maxTokenizerInputRunes {
+		text = string([]rune(text)[:maxTokenizerInputRunes])
+	}
+
 	normalized := tokenizer.normalize(text)
 	basicTokens := basicTokenize(normalized)
 	tokenIDs := make([]int, 0, len(basicTokens))
@@ -214,6 +231,10 @@ func (tokenizer *wordPieceTokenizer) wordPieceIDs(token string) []int {
 	}
 
 	tokenRunes := []rune(token)
+	if len(tokenRunes) > tokenizer.maxCharsPerWord {
+		return []int{tokenizer.unkTokenID} // matches HF; also bounds the O(n^2) match
+	}
+
 	startRune := 0
 	tokenIDs := make([]int, 0)
 

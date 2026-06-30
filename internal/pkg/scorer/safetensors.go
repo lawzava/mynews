@@ -22,6 +22,7 @@ var (
 	errEmbeddingTensorMissing     = errors.New("no 2-D F32 tensor found")
 	errTensorOffsetsOutOfRange    = errors.New("tensor data offsets are out of range")
 	errTensorByteLengthMismatched = errors.New("tensor byte length does not match shape byte length")
+	errInvalidTensorShape         = errors.New("tensor shape must be positive")
 )
 
 type embeddingMatrix struct {
@@ -144,15 +145,19 @@ func decodeEmbeddingTensor(tensorData []byte, tensor safetensorsTensor) (*embedd
 		return nil, errTensorOffsetsOutOfRange
 	}
 
-	rawValues := tensorData[startOffset:endOffset]
-	valueCount := tensor.Shape[0] * tensor.Shape[1]
-	expectedBytes := valueCount * bytesPerFloat32
+	if tensor.Shape[0] <= 0 || tensor.Shape[1] <= 0 {
+		return nil, errInvalidTensorShape
+	}
 
-	if len(rawValues) != expectedBytes {
+	rawValues := tensorData[startOffset:endOffset]
+
+	// Compute in int64 so a crafted shape cannot overflow into a false match.
+	expectedBytes := int64(tensor.Shape[0]) * int64(tensor.Shape[1]) * bytesPerFloat32
+	if int64(len(rawValues)) != expectedBytes {
 		return nil, fmt.Errorf("%w: %d != %d", errTensorByteLengthMismatched, len(rawValues), expectedBytes)
 	}
 
-	values := make([]float32, valueCount)
+	values := make([]float32, tensor.Shape[0]*tensor.Shape[1])
 	for valueIdx := range values {
 		startByte := valueIdx * bytesPerFloat32
 		bits := binary.LittleEndian.Uint32(rawValues[startByte : startByte+bytesPerFloat32])

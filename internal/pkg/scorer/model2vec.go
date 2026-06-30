@@ -201,6 +201,12 @@ func (model *model2Vec) encode(text string) []float32 {
 	rowCount := 0
 
 	for _, tokenID := range tokenIDs {
+		// model2vec drops unknown tokens before pooling so the [UNK] vector does
+		// not dilute the mean for titles with out-of-vocabulary words.
+		if tokenID == model.tokenizer.unkTokenID {
+			continue
+		}
+
 		row := model.matrix.row(tokenID)
 		if row == nil {
 			continue

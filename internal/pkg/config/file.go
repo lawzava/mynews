@@ -45,6 +45,8 @@ type fileStructureScoring struct {
 	ModelName string   `json:"modelName,omitempty"`
 	ModelDir  string   `json:"modelDir,omitempty"`
 	MinScore  float64  `json:"minScore,omitempty"` // Stories scoring below this (0-1) are dropped
+
+	SummarizeArticles bool `json:"summarizeArticles,omitempty"`
 }
 
 type fileStructureElement struct {
@@ -178,12 +180,13 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 	// Parse scoring config
 	if f.Scoring != nil && f.Scoring.Enabled {
 		config.Scoring = &ScoringConfig{
-			Enabled:   f.Scoring.Enabled,
-			Provider:  f.Scoring.Provider,
-			Interests: f.Scoring.Interests,
-			ModelName: f.Scoring.ModelName,
-			ModelDir:  f.Scoring.ModelDir,
-			MinScore:  f.Scoring.MinScore,
+			Enabled:           f.Scoring.Enabled,
+			Provider:          f.Scoring.Provider,
+			Interests:         f.Scoring.Interests,
+			ModelName:         f.Scoring.ModelName,
+			ModelDir:          f.Scoring.ModelDir,
+			MinScore:          f.Scoring.MinScore,
+			SummarizeArticles: f.Scoring.SummarizeArticles,
 		}
 	}
 
@@ -226,9 +229,10 @@ func createSampleFile(filePath string) error {
 				"geopolitical conflicts and international relations",
 				"stock market and financial technology",
 			},
-			ModelName: "",
-			ModelDir:  "",
-			MinScore:  0,
+			ModelName:         "",
+			ModelDir:          "",
+			MinScore:          0,
+			SummarizeArticles: false,
 		},
 		LegacyBroadcastType:       "",
 		LegacyTelegramBotAPIToken: "",

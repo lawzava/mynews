@@ -62,6 +62,7 @@
 		],
 		"modelName": "",
 		"modelDir": "",
-		"minScore": 0
+		"minScore": 0,
+		"summarizeArticles": false
 	}
 }

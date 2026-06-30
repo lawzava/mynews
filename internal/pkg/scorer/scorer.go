@@ -32,6 +32,15 @@ type Scorer interface {
 	Close() error
 }
 
+// Summarizer is an optional capability for scorers that can produce an extractive
+// summary of an article. Only the embedding scorer implements it; callers should
+// type-assert and fall back gracefully when it is absent.
+type Summarizer interface {
+	// Summarize returns the article sentence most relevant to the title, or "" if
+	// the body yields no usable sentence.
+	Summarize(ctx context.Context, title, body string) (string, error)
+}
+
 // Config holds scorer configuration.
 type Config struct {
 	// Provider specifies which scorer to use: "embedding" or "keyword"

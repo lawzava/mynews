@@ -44,6 +44,10 @@ type ScoringConfig struct {
 	ModelName string   // HuggingFace model name (for embedding provider)
 	ModelDir  string   // Directory to cache models
 	MinScore  float64  // Stories scoring below this (0-1) are not broadcast
+
+	// SummarizeArticles, with the embedding provider, fetches the article and
+	// attaches its title-most-relevant sentence when a feed entry has no summary.
+	SummarizeArticles bool
 }
 
 type App struct {

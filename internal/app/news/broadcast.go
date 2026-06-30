@@ -10,10 +10,12 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"mynews/internal/pkg/article"
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/config"
 	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/parser"
+	"mynews/internal/pkg/scorer"
 	"strings"
 	"time"
 )
@@ -77,7 +79,7 @@ func (n News) handleStory(
 	message := broadcast.Story{
 		Title:   story.Title,
 		URL:     story.Link,
-		Summary: cleanSummary(story.Description),
+		Summary: n.storySummary(ctx, story, log),
 		Score:   scored.value,
 		Reason:  scored.reason,
 	}
@@ -147,6 +149,42 @@ func (n News) scoreStory(ctx context.Context, source *config.Source, title strin
 		reason: score.Reason,
 		passes: score.Value >= n.cfg.Scoring.MinScore,
 	}
+}
+
+// storySummary returns the feed entry's own description when present, otherwise
+// (if article summarization is enabled and an embedding scorer is available) it
+// fetches the article and extracts its title-most-relevant sentence. Best-effort:
+// any failure falls back to an empty summary.
+func (n News) storySummary(ctx context.Context, story *parser.Item, log *logger.Log) string {
+	summary := cleanSummary(story.Description)
+	if summary != "" {
+		return summary
+	}
+
+	if n.cfg.Scoring == nil || !n.cfg.Scoring.SummarizeArticles {
+		return ""
+	}
+
+	summarizer, ok := n.scorer.(scorer.Summarizer)
+	if !ok {
+		return "" // summarization needs the embedding provider
+	}
+
+	text, err := article.FetchText(ctx, story.Link)
+	if err != nil {
+		log.WarnErr("fetching article for summary", err)
+
+		return ""
+	}
+
+	sentence, err := summarizer.Summarize(ctx, story.Title, text)
+	if err != nil {
+		log.WarnErr("summarizing article", err)
+
+		return ""
+	}
+
+	return cleanSummary(sentence)
 }
 
 const maxSummaryLen = 280

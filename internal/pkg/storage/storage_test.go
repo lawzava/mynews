@@ -80,7 +80,7 @@ func TestStorageCleanup(t *testing.T) {
 			t.Error("key should exist")
 		}
 
-		store.CleanupBefore("", cleanupBefore)
+		store.CleanupAllBefore(cleanupBefore)
 
 		exists, err = store.KeyExists("", randomKey)
 		if err != nil {
@@ -98,7 +98,7 @@ func TestStorageCleanup(t *testing.T) {
 			t.Error(err)
 		}
 
-		store.CleanupBefore("", cleanupBefore)
+		store.CleanupAllBefore(cleanupBefore)
 
 		exists, err = store.KeyExists("", randomKey)
 		if err != nil {
@@ -111,33 +111,31 @@ func TestStorageCleanup(t *testing.T) {
 	}
 }
 
-// TestStorageCleanupRemovesStaleKeys covers the case the other cleanup test never
-// exercised: a key whose last-seen time is genuinely before the cutoff must be
-// pruned, and cleaning one app must not touch another app's bucket.
+// TestStorageCleanupRemovesStaleKeys covers the cutoff boundary: a key last seen
+// before the cutoff is pruned while a key stored after the cutoff survives, even
+// when the two keys live in different app buckets of the same cleanup pass.
 func TestStorageCleanupRemovesStaleKeys(t *testing.T) {
 	t.Parallel()
 
 	store := storage.New()
 
-	const (
-		app   = "app"
-		other = "other"
-	)
-
-	err := store.PutKey(app, "stale")
+	err := store.PutKey("app-a", "stale")
 	if err != nil {
 		t.Fatalf("putting stale key: %v", err)
 	}
 
-	err = store.PutKey(other, "keep")
+	time.Sleep(time.Millisecond)
+
+	cutoff := time.Now()
+
+	err = store.PutKey("app-b", "fresh")
 	if err != nil {
-		t.Fatalf("putting other key: %v", err)
+		t.Fatalf("putting fresh key: %v", err)
 	}
 
-	// Everything stored so far predates this cutoff.
-	store.CleanupBefore(app, time.Now().Add(time.Hour))
+	store.CleanupAllBefore(cutoff)
 
-	staleExists, err := store.KeyExists(app, "stale")
+	staleExists, err := store.KeyExists("app-a", "stale")
 	if err != nil {
 		t.Fatalf("checking stale key: %v", err)
 	}
@@ -146,13 +144,13 @@ func TestStorageCleanupRemovesStaleKeys(t *testing.T) {
 		t.Error("stale key should have been pruned")
 	}
 
-	otherExists, err := store.KeyExists(other, "keep")
+	freshExists, err := store.KeyExists("app-b", "fresh")
 	if err != nil {
-		t.Fatalf("checking other key: %v", err)
+		t.Fatalf("checking fresh key: %v", err)
 	}
 
-	if !otherExists {
-		t.Error("cleaning one app must not remove another app's keys")
+	if !freshExists {
+		t.Error("a key seen after the cutoff must survive cleanup")
 	}
 }
 

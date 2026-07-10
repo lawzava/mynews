@@ -56,25 +56,9 @@ func (s *Storage) KeyExists(app, key string) (bool, error) {
 	return false, nil
 }
 
-func (s *Storage) CleanupBefore(app string, before time.Time) {
-	s.mux.Lock()
-
-	if s.store[app] == nil {
-		s.store[app] = make(map[string]time.Time)
-	}
-
-	for key, lastSeenAt := range s.store[app] {
-		if lastSeenAt.Before(before) {
-			delete(s.store[app], key)
-		}
-	}
-
-	s.mux.Unlock()
-}
-
-// CleanupAllBefore removes keys last seen before the cutoff across every app. It
-// is a safety net that bounds storage growth even when a persistently failing
-// source suppresses the per-app CleanupBefore.
+// CleanupAllBefore removes keys last seen before the cutoff across every app,
+// bounding storage growth. KeyExists refreshes a key's last-seen time, so keys
+// for stories still appearing in a feed are never pruned.
 func (s *Storage) CleanupAllBefore(before time.Time) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
@@ -101,7 +85,7 @@ func (s *Storage) DumpToFile(filePath string) error {
 
 	defer func() { _ = os.Remove(tmpName) }() // no-op once the rename below succeeds
 
-	// Hold the read lock for the snapshot: PutKey/KeyExists/CleanupBefore all take
+	// Hold the read lock for the snapshot: PutKey/KeyExists/CleanupAllBefore all take
 	// the write lock, so without this the encoder races a concurrent map write.
 	s.mux.RLock()
 	err = json.NewEncoder(tmpFile).Encode(s.store)

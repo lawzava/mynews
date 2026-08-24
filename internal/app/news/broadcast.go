@@ -18,6 +18,8 @@ import (
 	"mynews/internal/pkg/scorer"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 const scoringTimeout = 30 * time.Second
@@ -151,10 +153,15 @@ func (n News) scoreStory(ctx context.Context, source *config.Source, title strin
 		return scoredStory{value: 0, reason: "", passes: true}
 	}
 
+	minScore := n.cfg.Scoring.MinScore
+	if source.MinScore != nil {
+		minScore = *source.MinScore
+	}
+
 	return scoredStory{
 		value:  score.Value,
 		reason: score.Reason,
-		passes: score.Value >= n.cfg.Scoring.MinScore,
+		passes: score.Value >= minScore,
 	}
 }
 
@@ -235,18 +242,26 @@ func storyMatchesConfig(story *parser.Item, source *config.Source) bool {
 	}
 
 	if len(source.MustExcludeKeywords) != 0 {
-		if includesKeywords(story.Title, source.MustExcludeKeywords) {
+		if sourceIncludesKeywords(story.Title, source.MustExcludeKeywords, source.MatchKeywordsAsWords) {
 			return false
 		}
 	}
 
 	if len(source.MustIncludeKeywords) != 0 {
-		if !includesKeywords(story.Title, source.MustIncludeKeywords) {
+		if !sourceIncludesKeywords(story.Title, source.MustIncludeKeywords, source.MatchKeywordsAsWords) {
 			return false
 		}
 	}
 
 	return true
+}
+
+func sourceIncludesKeywords(target string, keywords []string, matchAsWords bool) bool {
+	if matchAsWords {
+		return includesWholeWordKeywords(target, keywords)
+	}
+
+	return includesKeywords(target, keywords)
 }
 
 func includesKeywords(target string, keywords []string) bool {
@@ -263,6 +278,56 @@ func includesKeywords(target string, keywords []string) bool {
 	}
 
 	return false
+}
+
+func includesWholeWordKeywords(target string, keywords []string) bool {
+	target = strings.ToLower(target)
+
+	for _, keyword := range keywords {
+		keyword = strings.ToLower(strings.TrimSpace(keyword))
+		if keyword != "" && containsWholeKeyword(target, keyword) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func containsWholeKeyword(target, keyword string) bool {
+	for searchFrom := 0; searchFrom <= len(target); {
+		relativeStart := strings.Index(target[searchFrom:], keyword)
+		if relativeStart < 0 {
+			return false
+		}
+
+		start := searchFrom + relativeStart
+		end := start + len(keyword)
+		beforeWord := false
+
+		if start > 0 {
+			before, _ := utf8.DecodeLastRuneInString(target[:start])
+			beforeWord = isKeywordWordRune(before)
+		}
+
+		afterWord := false
+
+		if end < len(target) {
+			after, _ := utf8.DecodeRuneInString(target[end:])
+			afterWord = isKeywordWordRune(after)
+		}
+
+		if !beforeWord && !afterWord {
+			return true
+		}
+
+		searchFrom = end
+	}
+
+	return false
+}
+
+func isKeywordWordRune(value rune) bool {
+	return unicode.IsLetter(value) || unicode.IsNumber(value) || value == '_'
 }
 
 func buildStoryID(published, link string, statusPage bool) string {

@@ -2,9 +2,47 @@
 package news
 
 import (
+	"mynews/internal/pkg/config"
+	"mynews/internal/pkg/parser"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestStoryMatchesConfigWholeWordKeywords(t *testing.T) {
+	t.Parallel()
+
+	source := &config.Source{ //nolint:exhaustruct // only matching fields matter
+		IgnoreStoriesBefore:  time.Now().Add(-time.Hour),
+		MustIncludeKeywords:  []string{"ai"},
+		MatchKeywordsAsWords: true,
+	}
+
+	tests := []struct {
+		title string
+		want  bool
+	}{
+		{title: "AI Chip Architectures", want: true},
+		{title: "Building an AI-powered assistant", want: true},
+		{title: "FDA clears blood test to aid evaluation", want: false},
+		{title: "Repair rules take effect", want: false},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.title, func(t *testing.T) {
+			t.Parallel()
+
+			story := parser.Item{ //nolint:exhaustruct // matching uses title and parsed time
+				Title:             testCase.title,
+				PublishedAtParsed: time.Now(),
+			}
+
+			if got := storyMatchesConfig(&story, source); got != testCase.want {
+				t.Errorf("storyMatchesConfig(%q) = %t, want %t", testCase.title, got, testCase.want)
+			}
+		})
+	}
+}
 
 func TestNormalizeURL(t *testing.T) {
 	t.Parallel()

@@ -116,6 +116,29 @@ func TestMinScoreFiltersBelowThreshold(t *testing.T) {
 	}
 }
 
+func TestPerSourceMinScoreOverridesGlobalThreshold(t *testing.T) {
+	t.Parallel()
+
+	news := newTestNews(fakeScorer{interests: []string{linuxKeyword}}, 0.95)
+	capture := &captureBroadcast{sent: nil}
+	source := openSource()
+	minScore := 0.5
+	source.MinScore = &minScore
+
+	items := []parser.Item{
+		recentItem("Big Linux kernel release", "https://ex.com/1"),
+	}
+
+	err := news.broadcastFeed(context.Background(), capture, nil, items, source, logger.New(logger.Error))
+	if err != nil {
+		t.Fatalf("broadcastFeed: %v", err)
+	}
+
+	if len(capture.sent) != 1 {
+		t.Fatalf("sent %d stories, want 1 using the per-source threshold", len(capture.sent))
+	}
+}
+
 func TestPerSourceInterestsRouteToDerivedScorer(t *testing.T) {
 	t.Parallel()
 

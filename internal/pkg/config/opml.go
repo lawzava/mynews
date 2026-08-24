@@ -64,12 +64,14 @@ func importOPMLFile(opmlPath, configPath string, log *logger.Log) error {
 
 	for idx, url := range urls {
 		sources[idx] = fileStructureSource{
-			URL:                 url,
-			IgnoreStoriesBefore: "",
-			MustIncludeAnyOf:    nil,
-			MustExcludeAnyOf:    nil,
-			StatusPage:          false,
-			Interests:           nil,
+			URL:                  url,
+			IgnoreStoriesBefore:  "",
+			MustIncludeAnyOf:     nil,
+			MustExcludeAnyOf:     nil,
+			MatchKeywordsAsWords: false,
+			MinScore:             nil,
+			StatusPage:           false,
+			Interests:            nil,
 		}
 	}
 

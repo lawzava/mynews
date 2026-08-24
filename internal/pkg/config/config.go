@@ -14,12 +14,14 @@ import (
 var ErrCreatedNewFile = errors.New("created new file")
 
 type Source struct {
-	URL                 string
-	IgnoreStoriesBefore time.Time
-	MustIncludeKeywords []string
-	MustExcludeKeywords []string
-	StatusPage          bool     // used when links in feed does not change but timestamp changes
-	Interests           []string // per-source scoring interests; falls back to the global list
+	URL                  string
+	IgnoreStoriesBefore  time.Time
+	MustIncludeKeywords  []string
+	MustExcludeKeywords  []string
+	MatchKeywordsAsWords bool
+	StatusPage           bool     // used when links in feed does not change but timestamp changes
+	Interests            []string // per-source scoring interests; falls back to the global list
+	MinScore             *float64 // optional per-source threshold; nil falls back to the global threshold
 }
 
 type Config struct {

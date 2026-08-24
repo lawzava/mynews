@@ -12,8 +12,9 @@ scorer and everything else runs fully offline.
 
 ## Features
 
-- **Sources**: RSS and Atom feeds, with per-source keyword include/exclude filters and a
-  date cutoff. Feeds are fetched concurrently, so one slow feed never stalls the others.
+- **Sources**: RSS and Atom feeds, with per-source keyword include/exclude filters,
+  optional whole-word matching, score thresholds, and a date cutoff. Feeds are fetched
+  concurrently, so one slow feed never stalls the others.
 - **Broadcast targets**: `stdout`, `telegram`, `discord`, `slack`, and a generic `webhook`
   (which receives the raw story JSON). Configure one or more independent "apps".
 - **Relevance scoring** (optional): score story titles against your interests with local

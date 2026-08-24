@@ -73,12 +73,14 @@ type fileStructureDigest struct {
 }
 
 type fileStructureSource struct {
-	URL                 string   `json:"url"`
-	IgnoreStoriesBefore string   `json:"ignoreStoriesBefore,omitempty"`
-	MustIncludeAnyOf    []string `json:"mustIncludeAnyOf,omitempty"`
-	MustExcludeAnyOf    []string `json:"mustExcludeAnyOf,omitempty"`
-	StatusPage          bool     `json:"statusPage,omitempty"`
-	Interests           []string `json:"interests,omitempty"`
+	URL                  string   `json:"url"`
+	IgnoreStoriesBefore  string   `json:"ignoreStoriesBefore,omitempty"`
+	MustIncludeAnyOf     []string `json:"mustIncludeAnyOf,omitempty"`
+	MustExcludeAnyOf     []string `json:"mustExcludeAnyOf,omitempty"`
+	MatchKeywordsAsWords bool     `json:"matchKeywordsAsWords,omitempty"`
+	StatusPage           bool     `json:"statusPage,omitempty"`
+	Interests            []string `json:"interests,omitempty"`
+	MinScore             *float64 `json:"minScore,omitempty"`
 }
 
 func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config, error) {
@@ -251,12 +253,14 @@ func (f *fileStructure) toConfig(storageFilePath string, log *logger.Log) (*Conf
 func createSampleFile(filePath string) error {
 	sources := []fileStructureSource{
 		{
-			URL:                 sampleFeedURL,
-			IgnoreStoriesBefore: "",
-			MustIncludeAnyOf:    []string{"linux", "golang"},
-			MustExcludeAnyOf:    nil,
-			StatusPage:          false,
-			Interests:           nil,
+			URL:                  sampleFeedURL,
+			IgnoreStoriesBefore:  "",
+			MustIncludeAnyOf:     []string{"linux", "golang"},
+			MustExcludeAnyOf:     nil,
+			MatchKeywordsAsWords: false,
+			MinScore:             nil,
+			StatusPage:           false,
+			Interests:            nil,
 		},
 	}
 
@@ -336,12 +340,14 @@ func (fe *fileStructureElement) prepareConfigElement(log *logger.Log) (App, erro
 
 	for sourceIdx := range fe.Sources {
 		cfg.Sources[sourceIdx] = &Source{
-			URL:                 fe.Sources[sourceIdx].URL,
-			IgnoreStoriesBefore: parseIgnoreBefore(fe.Sources[sourceIdx].IgnoreStoriesBefore, log),
-			MustIncludeKeywords: fe.Sources[sourceIdx].MustIncludeAnyOf,
-			MustExcludeKeywords: fe.Sources[sourceIdx].MustExcludeAnyOf,
-			StatusPage:          fe.Sources[sourceIdx].StatusPage,
-			Interests:           fe.Sources[sourceIdx].Interests,
+			URL:                  fe.Sources[sourceIdx].URL,
+			IgnoreStoriesBefore:  parseIgnoreBefore(fe.Sources[sourceIdx].IgnoreStoriesBefore, log),
+			MustIncludeKeywords:  fe.Sources[sourceIdx].MustIncludeAnyOf,
+			MustExcludeKeywords:  fe.Sources[sourceIdx].MustExcludeAnyOf,
+			MatchKeywordsAsWords: fe.Sources[sourceIdx].MatchKeywordsAsWords,
+			StatusPage:           fe.Sources[sourceIdx].StatusPage,
+			Interests:            fe.Sources[sourceIdx].Interests,
+			MinScore:             fe.Sources[sourceIdx].MinScore,
 		}
 	}
 

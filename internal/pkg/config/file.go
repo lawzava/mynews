@@ -78,6 +78,7 @@ type fileStructureSource struct {
 	MustIncludeAnyOf     []string `json:"mustIncludeAnyOf,omitempty"`
 	MustExcludeAnyOf     []string `json:"mustExcludeAnyOf,omitempty"`
 	MatchKeywordsAsWords bool     `json:"matchKeywordsAsWords,omitempty"`
+	MatchKeywordsOrScore bool     `json:"matchKeywordsOrScore,omitempty"`
 	StatusPage           bool     `json:"statusPage,omitempty"`
 	Interests            []string `json:"interests,omitempty"`
 	MinScore             *float64 `json:"minScore,omitempty"`
@@ -258,6 +259,7 @@ func createSampleFile(filePath string) error {
 			MustIncludeAnyOf:     []string{"linux", "golang"},
 			MustExcludeAnyOf:     nil,
 			MatchKeywordsAsWords: false,
+			MatchKeywordsOrScore: false,
 			MinScore:             nil,
 			StatusPage:           false,
 			Interests:            nil,
@@ -345,6 +347,7 @@ func (fe *fileStructureElement) prepareConfigElement(log *logger.Log) (App, erro
 			MustIncludeKeywords:  fe.Sources[sourceIdx].MustIncludeAnyOf,
 			MustExcludeKeywords:  fe.Sources[sourceIdx].MustExcludeAnyOf,
 			MatchKeywordsAsWords: fe.Sources[sourceIdx].MatchKeywordsAsWords,
+			MatchKeywordsOrScore: fe.Sources[sourceIdx].MatchKeywordsOrScore,
 			StatusPage:           fe.Sources[sourceIdx].StatusPage,
 			Interests:            fe.Sources[sourceIdx].Interests,
 			MinScore:             fe.Sources[sourceIdx].MinScore,

@@ -139,6 +139,63 @@ func TestPerSourceMinScoreOverridesGlobalThreshold(t *testing.T) {
 	}
 }
 
+func TestKeywordOrScoreAllowsEitherSignal(t *testing.T) {
+	t.Parallel()
+
+	news := newTestNews(fakeScorer{interests: []string{linuxKeyword}}, 0.5)
+	capture := &captureBroadcast{sent: nil}
+	source := openSource()
+	source.MustIncludeKeywords = []string{aiKeyword}
+	source.MustExcludeKeywords = []string{"spam"}
+	source.MatchKeywordsAsWords = true
+	source.MatchKeywordsOrScore = true
+
+	items := []parser.Item{
+		recentItem("AI product announcement", "https://ex.com/keyword"),
+		recentItem("Linux kernel release", "https://ex.com/score"),
+		recentItem("Celebrity roundup", "https://ex.com/neither"),
+		recentItem("Linux spam bulletin", "https://ex.com/excluded"),
+	}
+
+	err := news.broadcastFeed(context.Background(), capture, nil, items, source, logger.New(logger.Error))
+	if err != nil {
+		t.Fatalf("broadcastFeed: %v", err)
+	}
+
+	if len(capture.sent) != 2 {
+		t.Fatalf("sent %d stories, want keyword match and score match", len(capture.sent))
+	}
+
+	if capture.sent[0].Title != items[0].Title || capture.sent[1].Title != items[1].Title {
+		t.Fatalf("sent titles = %q, %q; want %q, %q", capture.sent[0].Title, capture.sent[1].Title,
+			items[0].Title, items[1].Title)
+	}
+}
+
+func TestKeywordOrScoreRequiresScoring(t *testing.T) {
+	t.Parallel()
+
+	news := newTestNews(fakeScorer{interests: []string{linuxKeyword}}, 0.5)
+	news.scorer = nil
+	capture := &captureBroadcast{sent: nil}
+	source := openSource()
+	source.MustIncludeKeywords = []string{aiKeyword}
+	source.MatchKeywordsOrScore = true
+
+	items := []parser.Item{
+		recentItem("Celebrity roundup", "https://ex.com/no-score"),
+	}
+
+	err := news.broadcastFeed(context.Background(), capture, nil, items, source, logger.New(logger.Error))
+	if err != nil {
+		t.Fatalf("broadcastFeed: %v", err)
+	}
+
+	if len(capture.sent) != 0 {
+		t.Fatalf("sent %d stories without scoring, want 0", len(capture.sent))
+	}
+}
+
 func TestPerSourceInterestsRouteToDerivedScorer(t *testing.T) {
 	t.Parallel()
 

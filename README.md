@@ -13,8 +13,8 @@ scorer and everything else runs fully offline.
 ## Features
 
 - **Sources**: RSS and Atom feeds, with per-source keyword include/exclude filters,
-  optional whole-word matching, score thresholds, and a date cutoff. Feeds are fetched
-  concurrently, so one slow feed never stalls the others.
+  optional whole-word and keyword-or-score matching, score thresholds, and a date cutoff.
+  Feeds are fetched concurrently, so one slow feed never stalls the others.
 - **Broadcast targets**: `stdout`, `telegram`, `discord`, `slack`, and a generic `webhook`
   (which receives the raw story JSON). Configure one or more independent "apps".
 - **Relevance scoring** (optional): score story titles against your interests with local
@@ -22,6 +22,8 @@ scorer and everything else runs fully offline.
   or simple `keyword` matching. Set `minScore` to drop low-relevance stories, and override
   interests per source. With embedding scoring, stories whose feed entry has no description
   get a best-effort extractive summary by default (disable with `disableArticleSummaries`).
+  Set `matchKeywordsOrScore` on a source to accept either an include-keyword match or its
+  score threshold; date cutoffs and exclude keywords remain mandatory.
 - **Digest mode**: batch the top-N highest-scoring stories per interval instead of sending
   each one as it arrives.
 - **Cross-source dedup**: the same article shared under different URLs (tracking params,

@@ -19,6 +19,7 @@ type Source struct {
 	MustIncludeKeywords  []string
 	MustExcludeKeywords  []string
 	MatchKeywordsAsWords bool
+	MatchKeywordsOrScore bool
 	StatusPage           bool     // used when links in feed does not change but timestamp changes
 	Interests            []string // per-source scoring interests; falls back to the global list
 	MinScore             *float64 // optional per-source threshold; nil falls back to the global threshold

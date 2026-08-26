@@ -20,6 +20,7 @@ func TestSourceScoringOptionsLoadFromFileStructure(t *testing.T) {
 						URL:                  "https://news.ycombinator.com/rss",
 						MinScore:             &minScore,
 						MatchKeywordsAsWords: true,
+						MatchKeywordsOrScore: true,
 					},
 				},
 			},
@@ -38,5 +39,9 @@ func TestSourceScoringOptionsLoadFromFileStructure(t *testing.T) {
 
 	if !source.MatchKeywordsAsWords {
 		t.Fatal("source MatchKeywordsAsWords = false, want true")
+	}
+
+	if !source.MatchKeywordsOrScore {
+		t.Fatal("source MatchKeywordsOrScore = false, want true")
 	}
 }

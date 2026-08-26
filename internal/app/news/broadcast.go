@@ -63,7 +63,8 @@ func (n News) handleStory(
 	default:
 	}
 
-	if !storyMatchesConfig(story, source) {
+	filterResult := n.storyPassesSourceFilters(story, source)
+	if !filterResult.matchesSource {
 		return false, nil
 	}
 
@@ -79,7 +80,7 @@ func (n News) handleStory(
 	}
 
 	scored := n.scoreStory(ctx, source, story.Title, log)
-	if !scored.passes {
+	if !passesRelevanceFilter(scored, filterResult.keywordPasses) {
 		// Below the threshold: record as seen so it is not re-scored each cycle.
 		return false, n.markSent(broadcastClient, storyID)
 	}
@@ -113,6 +114,32 @@ func (n News) handleStory(
 	}
 
 	return !sleep(ctx, n.cfg.SleepDurationBetweenBroadcasts), nil
+}
+
+type sourceFilterResult struct {
+	matchesSource bool
+	keywordPasses bool
+}
+
+func (n News) storyPassesSourceFilters(story *parser.Item, source *config.Source) sourceFilterResult {
+	if source.MatchKeywordsOrScore && n.scorer != nil {
+		keywordPasses := sourceIncludesKeywords(
+			story.Title, source.MustIncludeKeywords, source.MatchKeywordsAsWords)
+
+		return sourceFilterResult{
+			matchesSource: storyPassesRequiredFilters(story, source),
+			keywordPasses: keywordPasses,
+		}
+	}
+
+	return sourceFilterResult{
+		matchesSource: storyMatchesConfig(story, source),
+		keywordPasses: false,
+	}
+}
+
+func passesRelevanceFilter(scored scoredStory, keywordPasses bool) bool {
+	return scored.passes || keywordPasses
 }
 
 func (n News) markSent(broadcastClient broadcast.Broadcast, storyID string) error {
@@ -233,6 +260,20 @@ func cleanSummary(raw string) string {
 }
 
 func storyMatchesConfig(story *parser.Item, source *config.Source) bool {
+	if !storyPassesRequiredFilters(story, source) {
+		return false
+	}
+
+	if len(source.MustIncludeKeywords) != 0 {
+		if !sourceIncludesKeywords(story.Title, source.MustIncludeKeywords, source.MatchKeywordsAsWords) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func storyPassesRequiredFilters(story *parser.Item, source *config.Source) bool {
 	if story.PublishedAtParsed.IsZero() {
 		return false
 	}
@@ -243,12 +284,6 @@ func storyMatchesConfig(story *parser.Item, source *config.Source) bool {
 
 	if len(source.MustExcludeKeywords) != 0 {
 		if sourceIncludesKeywords(story.Title, source.MustExcludeKeywords, source.MatchKeywordsAsWords) {
-			return false
-		}
-	}
-
-	if len(source.MustIncludeKeywords) != 0 {
-		if !sourceIncludesKeywords(story.Title, source.MustIncludeKeywords, source.MatchKeywordsAsWords) {
 			return false
 		}
 	}

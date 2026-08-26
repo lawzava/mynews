@@ -9,12 +9,14 @@ import (
 	"time"
 )
 
+const aiKeyword = "ai"
+
 func TestStoryMatchesConfigWholeWordKeywords(t *testing.T) {
 	t.Parallel()
 
 	source := &config.Source{ //nolint:exhaustruct // only matching fields matter
 		IgnoreStoriesBefore:  time.Now().Add(-time.Hour),
-		MustIncludeKeywords:  []string{"ai"},
+		MustIncludeKeywords:  []string{aiKeyword},
 		MatchKeywordsAsWords: true,
 	}
 

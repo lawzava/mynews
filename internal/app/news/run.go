@@ -20,7 +20,7 @@ const (
 
 // Run polls every configured feed in a loop until ctx is canceled, returning
 // nil on a clean shutdown.
-func (n News) Run(ctx context.Context, log *logger.Log) error {
+func (n *News) Run(ctx context.Context, log *logger.Log) error {
 	for {
 		for idx := range n.cfg.Apps {
 			n.parseApp(ctx, n.cfg.Apps[idx], n.digests[idx], log)
@@ -47,7 +47,7 @@ func (n News) Run(ctx context.Context, log *logger.Log) error {
 
 // flushDigests emits any due digests, recording each story as sent only after a
 // successful broadcast so a failed or interrupted flush is retried next cycle.
-func (n News) flushDigests(ctx context.Context, log *logger.Log) {
+func (n *News) flushDigests(ctx context.Context, log *logger.Log) {
 	now := time.Now()
 
 	for idx := range n.digests {
@@ -82,7 +82,7 @@ func (n News) flushDigests(ctx context.Context, log *logger.Log) {
 // order (preserving the global broadcast throttle). Dedup keys are retained for
 // storageRetention after they were last seen (see Run), never pruned per cycle:
 // a story that drops out of one fetch and reappears must not be re-broadcast.
-func (n News) parseApp(ctx context.Context, app config.App, dig *digest, log *logger.Log) {
+func (n *News) parseApp(ctx context.Context, app config.App, dig *digest, log *logger.Log) {
 	for _, result := range fetchSources(ctx, app.Sources) {
 		if result.source == nil {
 			continue // fetch skipped because shutdown began

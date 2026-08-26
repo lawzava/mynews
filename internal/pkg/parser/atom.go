@@ -47,6 +47,7 @@ func parseAtom(body []byte) ([]Item, error) {
 		items[itemIdx] = Item{
 			Title:             feed.Items[itemIdx].Title,
 			Link:              feed.Items[itemIdx].Link.Href,
+			CommentsURL:       "",
 			Description:       feed.Items[itemIdx].description(),
 			PublishedAt:       feed.Items[itemIdx].Updated,
 			PublishedAtParsed: time.Time{},

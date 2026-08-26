@@ -3,6 +3,7 @@ package news
 
 import (
 	"context"
+	"errors"
 	"mynews/internal/pkg/broadcast"
 	"mynews/internal/pkg/config"
 	"mynews/internal/pkg/logger"
@@ -20,10 +21,29 @@ const (
 	linuxKeyword = "linux"
 )
 
+var errHackerNewsUnavailable = errors.New("hacker news unavailable")
+
 // fakeScorer scores a title by the interest token it contains: a title holding an
 // interest string scores 0.9, otherwise 0.1.
 type fakeScorer struct {
 	interests []string
+}
+
+type fakeHackerNewsScoreClient struct {
+	scores []int
+	err    error
+	calls  int
+}
+
+func (f *fakeHackerNewsScoreClient) StoryScore(_ context.Context, _ string) (int, error) {
+	if f.err != nil {
+		return 0, f.err
+	}
+
+	score := f.scores[min(f.calls, len(f.scores)-1)]
+	f.calls++
+
+	return score, nil
 }
 
 func (f fakeScorer) Score(_ context.Context, title string) (scorer.Score, error) {
@@ -62,6 +82,7 @@ func recentItem(title, link string) parser.Item {
 	return parser.Item{
 		Title:             title,
 		Link:              link,
+		CommentsURL:       "https://news.ycombinator.com/item?id=123",
 		Description:       "",
 		PublishedAt:       "",
 		PublishedAtParsed: time.Now(),
@@ -193,6 +214,139 @@ func TestKeywordOrScoreRequiresScoring(t *testing.T) {
 
 	if len(capture.sent) != 0 {
 		t.Fatalf("sent %d stories without scoring, want 0", len(capture.sent))
+	}
+}
+
+func TestHackerNewsScoreAllowsRelevantStory(t *testing.T) {
+	t.Parallel()
+
+	news := newTestNews(fakeScorer{interests: []string{linuxKeyword}}, 0.5)
+	hackerNewsClient := &fakeHackerNewsScoreClient{scores: []int{56}, err: nil, calls: 0}
+	news.hackerNewsClient = hackerNewsClient
+	capture := &captureBroadcast{sent: nil}
+	source := openSource()
+	minHackerNewsScore := 10
+	source.MinHackerNewsScore = &minHackerNewsScore
+
+	items := []parser.Item{recentItem("RAG Is Simpler Than You Think", "https://ex.com/rag")}
+
+	err := news.broadcastFeed(context.Background(), capture, nil, items, source, logger.New(logger.Error))
+	if err != nil {
+		t.Fatalf("broadcastFeed: %v", err)
+	}
+
+	if len(capture.sent) != 1 {
+		t.Fatalf("sent %d stories, want 1 passing HN score", len(capture.sent))
+	}
+}
+
+func TestKeywordOrHackerNewsScoreWorksWithoutRelevanceScorer(t *testing.T) {
+	t.Parallel()
+
+	news := newTestNews(fakeScorer{interests: []string{linuxKeyword}}, 0.5)
+	news.scorer = nil
+	hackerNewsClient := &fakeHackerNewsScoreClient{scores: []int{56}, err: nil, calls: 0}
+	news.hackerNewsClient = hackerNewsClient
+	capture := &captureBroadcast{sent: nil}
+	source := openSource()
+	source.MustIncludeKeywords = []string{aiKeyword}
+	source.MatchKeywordsOrScore = true
+	minHackerNewsScore := 10
+	source.MinHackerNewsScore = &minHackerNewsScore
+
+	items := []parser.Item{recentItem("Compiler implementation notes", "https://ex.com/hn-only")}
+
+	err := news.broadcastFeed(context.Background(), capture, nil, items, source, logger.New(logger.Error))
+	if err != nil {
+		t.Fatalf("broadcastFeed: %v", err)
+	}
+
+	if len(capture.sent) != 1 {
+		t.Fatalf("sent %d stories, want HN score match without relevance scorer", len(capture.sent))
+	}
+
+	if hackerNewsClient.calls != 1 {
+		t.Fatalf("HN score calls = %d, want 1", hackerNewsClient.calls)
+	}
+}
+
+func TestHackerNewsScoreRejectsBelowThresholdWithoutRelevanceScorer(t *testing.T) {
+	t.Parallel()
+
+	news := newTestNews(fakeScorer{interests: []string{linuxKeyword}}, 0.5)
+	news.scorer = nil
+	hackerNewsClient := &fakeHackerNewsScoreClient{scores: []int{9}, err: nil, calls: 0}
+	news.hackerNewsClient = hackerNewsClient
+	capture := &captureBroadcast{sent: nil}
+	source := openSource()
+	minHackerNewsScore := 10
+	source.MinHackerNewsScore = &minHackerNewsScore
+
+	items := []parser.Item{recentItem("Compiler implementation notes", "https://ex.com/hn-below-threshold")}
+
+	err := news.broadcastFeed(context.Background(), capture, nil, items, source, logger.New(logger.Error))
+	if err != nil {
+		t.Fatalf("broadcastFeed: %v", err)
+	}
+
+	if len(capture.sent) != 0 {
+		t.Fatalf("sent %d stories, want 0 below HN threshold", len(capture.sent))
+	}
+
+	if hackerNewsClient.calls != 1 {
+		t.Fatalf("HN score calls = %d, want 1", hackerNewsClient.calls)
+	}
+}
+
+func TestHackerNewsScoreRechecksRejectedStory(t *testing.T) {
+	t.Parallel()
+
+	news := newTestNews(fakeScorer{interests: []string{linuxKeyword}}, 0.5)
+	news.hackerNewsClient = &fakeHackerNewsScoreClient{scores: []int{9, 10}, err: nil, calls: 0}
+	capture := &captureBroadcast{sent: nil}
+	source := openSource()
+	minHackerNewsScore := 10
+	source.MinHackerNewsScore = &minHackerNewsScore
+	items := []parser.Item{recentItem("Compiler implementation notes", "https://ex.com/compiler")}
+
+	err := news.broadcastFeed(context.Background(), capture, nil, items, source, logger.New(logger.Error))
+	if err != nil {
+		t.Fatalf("first broadcastFeed: %v", err)
+	}
+
+	err = news.broadcastFeed(context.Background(), capture, nil, items, source, logger.New(logger.Error))
+	if err != nil {
+		t.Fatalf("second broadcastFeed: %v", err)
+	}
+
+	if len(capture.sent) != 1 {
+		t.Fatalf("sent %d stories, want 1 after HN score reached threshold", len(capture.sent))
+	}
+}
+
+func TestHackerNewsScoreFailureFailsOpen(t *testing.T) {
+	t.Parallel()
+
+	news := newTestNews(fakeScorer{interests: []string{linuxKeyword}}, 0.5)
+	news.hackerNewsClient = &fakeHackerNewsScoreClient{
+		scores: nil,
+		err:    errHackerNewsUnavailable,
+		calls:  0,
+	}
+	capture := &captureBroadcast{sent: nil}
+	source := openSource()
+	minHackerNewsScore := 10
+	source.MinHackerNewsScore = &minHackerNewsScore
+
+	items := []parser.Item{recentItem("Unknown but ranked story", "https://ex.com/fail-open")}
+
+	err := news.broadcastFeed(context.Background(), capture, nil, items, source, logger.New(logger.Error))
+	if err != nil {
+		t.Fatalf("broadcastFeed: %v", err)
+	}
+
+	if len(capture.sent) != 1 {
+		t.Fatalf("sent %d stories, want fail-open delivery", len(capture.sent))
 	}
 }
 

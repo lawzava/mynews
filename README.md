@@ -24,6 +24,8 @@ scorer and everything else runs fully offline.
   get a best-effort extractive summary by default (disable with `disableArticleSummaries`).
   Set `matchKeywordsOrScore` on a source to accept either an include-keyword match or its
   score threshold; date cutoffs and exclude keywords remain mandatory.
+  For official HN RSS, `minHackerNewsScore` adds native story points as another acceptance
+  signal. Rejected stories remain retryable because their HN points can increase.
 - **Digest mode**: batch the top-N highest-scoring stories per interval instead of sending
   each one as it arrives.
 - **Cross-source dedup**: the same article shared under different URLs (tracking params,

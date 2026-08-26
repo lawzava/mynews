@@ -24,7 +24,7 @@ import (
 
 const scoringTimeout = 30 * time.Second
 
-func (n News) broadcastFeed(
+func (n *News) broadcastFeed(
 	ctx context.Context,
 	broadcastClient broadcast.Broadcast,
 	dig *digest,
@@ -49,7 +49,7 @@ func (n News) broadcastFeed(
 // handleStory processes a single story: filter, dedup, score, then either buffer
 // it for the digest or broadcast it immediately. It reports stop=true when the
 // run context was canceled mid-broadcast (shutdown).
-func (n News) handleStory(
+func (n *News) handleStory(
 	ctx context.Context,
 	broadcastClient broadcast.Broadcast,
 	dig *digest,
@@ -80,9 +80,10 @@ func (n News) handleStory(
 	}
 
 	scored := n.scoreStory(ctx, source, story.Title, log)
-	if !passesRelevanceFilter(scored, filterResult.keywordPasses) {
-		// Below the threshold: record as seen so it is not re-scored each cycle.
-		return false, n.markSent(broadcastClient, storyID)
+	if !n.storyPassesAnyScore(ctx, story, source, scored, filterResult.keywordPasses, log) {
+		// HN points can rise and policies can change, so rejected stories must
+		// remain eligible for a later cycle.
+		return false, nil
 	}
 
 	message := broadcast.Story{
@@ -121,8 +122,9 @@ type sourceFilterResult struct {
 	keywordPasses bool
 }
 
-func (n News) storyPassesSourceFilters(story *parser.Item, source *config.Source) sourceFilterResult {
-	if source.MatchKeywordsOrScore && n.scorer != nil {
+func (n *News) storyPassesSourceFilters(story *parser.Item, source *config.Source) sourceFilterResult {
+	hasScoreAlternative := n.scorer != nil || source.MinHackerNewsScore != nil
+	if source.MatchKeywordsOrScore && hasScoreAlternative {
 		keywordPasses := sourceIncludesKeywords(
 			story.Title, source.MustIncludeKeywords, source.MatchKeywordsAsWords)
 
@@ -138,11 +140,55 @@ func (n News) storyPassesSourceFilters(story *parser.Item, source *config.Source
 	}
 }
 
-func passesRelevanceFilter(scored scoredStory, keywordPasses bool) bool {
-	return scored.passes || keywordPasses
+func (n *News) storyPassesAnyScore(
+	ctx context.Context,
+	story *parser.Item,
+	source *config.Source,
+	scored scoredStory,
+	keywordPasses bool,
+	log *logger.Log,
+) bool {
+	_, hasSourceScorer := n.sourceScorers[source]
+
+	hasRelevanceScorer := n.scorer != nil || hasSourceScorer
+	if keywordPasses || (scored.passes && hasRelevanceScorer) {
+		return true
+	}
+
+	if source.MinHackerNewsScore != nil {
+		return n.storyPassesHackerNewsScore(ctx, story, source, log)
+	}
+
+	return !hasRelevanceScorer
 }
 
-func (n News) markSent(broadcastClient broadcast.Broadcast, storyID string) error {
+func (n *News) storyPassesHackerNewsScore(
+	ctx context.Context,
+	story *parser.Item,
+	source *config.Source,
+	log *logger.Log,
+) bool {
+	if source.MinHackerNewsScore == nil {
+		return false
+	}
+
+	if n.hackerNewsClient == nil {
+		log.Warn("Hacker News score client is unavailable; failing open")
+
+		return true
+	}
+
+	score, err := n.hackerNewsClient.StoryScore(ctx, story.CommentsURL)
+	if err != nil {
+		log.WarnErr("fetching Hacker News story score; failing open", err)
+
+		return true
+	}
+
+	return score >= *source.MinHackerNewsScore
+}
+
+func (n *News) markSent(broadcastClient broadcast.Broadcast, storyID string) error {
 	err := n.cfg.Store.PutKey(broadcastClient.Name(), storyID)
 	if err != nil {
 		return fmt.Errorf("registering story as sent: %w", err)
@@ -160,7 +206,7 @@ type scoredStory struct {
 // scoreStory scores a title against the configured interests and reports whether
 // it clears the relevance threshold. When scoring is disabled or errors, the story
 // passes (value 0) so it is never silently dropped on a scorer failure.
-func (n News) scoreStory(ctx context.Context, source *config.Source, title string, log *logger.Log) scoredStory {
+func (n *News) scoreStory(ctx context.Context, source *config.Source, title string, log *logger.Log) scoredStory {
 	activeScorer := n.scorer
 	if sourceScorer, ok := n.sourceScorers[source]; ok {
 		activeScorer = sourceScorer
@@ -196,7 +242,7 @@ func (n News) scoreStory(ctx context.Context, source *config.Source, title strin
 // (if article summarization is enabled and an embedding scorer is available) it
 // fetches the article and extracts its title-most-relevant sentence. Best-effort:
 // any failure falls back to an empty summary.
-func (n News) storySummary(ctx context.Context, story *parser.Item, log *logger.Log) string {
+func (n *News) storySummary(ctx context.Context, story *parser.Item, log *logger.Log) string {
 	summary := cleanSummary(story.Description)
 	if summary != "" {
 		return summary

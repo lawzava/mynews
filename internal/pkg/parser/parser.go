@@ -10,6 +10,7 @@ import (
 type Item struct {
 	Title             string
 	Link              string
+	CommentsURL       string
 	Description       string
 	PublishedAt       string
 	PublishedAtParsed time.Time

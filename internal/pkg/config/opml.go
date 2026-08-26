@@ -73,6 +73,7 @@ func importOPMLFile(opmlPath, configPath string, log *logger.Log) error {
 			MinScore:             nil,
 			StatusPage:           false,
 			Interests:            nil,
+			MinHackerNewsScore:   nil,
 		}
 	}
 

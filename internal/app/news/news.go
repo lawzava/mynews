@@ -1,31 +1,39 @@
 package news
 
 import (
+	"context"
 	"fmt"
 	"mynews/internal/pkg/config"
+	"mynews/internal/pkg/hackernews"
 	"mynews/internal/pkg/logger"
 	"mynews/internal/pkg/metrics"
 	"mynews/internal/pkg/scorer"
 	"path/filepath"
 )
 
+type hackerNewsScoreClient interface {
+	StoryScore(ctx context.Context, commentsURL string) (int, error)
+}
+
 // News handles RSS feed parsing and broadcasting.
 type News struct {
-	cfg           *config.Config
-	scorer        scorer.Scorer
-	sourceScorers map[*config.Source]scorer.Scorer
-	digests       []*digest
-	metrics       *metrics.Metrics
+	cfg              *config.Config
+	scorer           scorer.Scorer
+	sourceScorers    map[*config.Source]scorer.Scorer
+	digests          []*digest
+	metrics          *metrics.Metrics
+	hackerNewsClient hackerNewsScoreClient
 }
 
 // New creates a new News instance with optional scoring.
 func New(cfg *config.Config, met *metrics.Metrics, log *logger.Log) (News, error) {
 	newsInstance := News{
-		cfg:           cfg,
-		scorer:        nil,
-		sourceScorers: nil,
-		digests:       buildDigests(cfg),
-		metrics:       met,
+		cfg:              cfg,
+		scorer:           nil,
+		sourceScorers:    nil,
+		digests:          buildDigests(cfg),
+		metrics:          met,
+		hackerNewsClient: hackernews.NewClient(),
 	}
 
 	if cfg.Scoring != nil && cfg.Scoring.Enabled {
@@ -74,7 +82,7 @@ func New(cfg *config.Config, met *metrics.Metrics, log *logger.Log) (News, error
 }
 
 // Close releases resources held by News.
-func (n News) Close() error {
+func (n *News) Close() error {
 	if n.scorer != nil {
 		closeErr := n.scorer.Close()
 		if closeErr != nil {

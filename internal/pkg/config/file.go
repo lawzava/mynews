@@ -82,6 +82,7 @@ type fileStructureSource struct {
 	StatusPage           bool     `json:"statusPage,omitempty"`
 	Interests            []string `json:"interests,omitempty"`
 	MinScore             *float64 `json:"minScore,omitempty"`
+	MinHackerNewsScore   *int     `json:"minHackerNewsScore,omitempty"`
 }
 
 func fromFile(configFilePath, storageFilePath string, log *logger.Log) (*Config, error) {
@@ -263,6 +264,7 @@ func createSampleFile(filePath string) error {
 			MinScore:             nil,
 			StatusPage:           false,
 			Interests:            nil,
+			MinHackerNewsScore:   nil,
 		},
 	}
 
@@ -351,6 +353,7 @@ func (fe *fileStructureElement) prepareConfigElement(log *logger.Log) (App, erro
 			StatusPage:           fe.Sources[sourceIdx].StatusPage,
 			Interests:            fe.Sources[sourceIdx].Interests,
 			MinScore:             fe.Sources[sourceIdx].MinScore,
+			MinHackerNewsScore:   fe.Sources[sourceIdx].MinHackerNewsScore,
 		}
 	}
 

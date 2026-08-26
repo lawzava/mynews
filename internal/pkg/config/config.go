@@ -23,6 +23,7 @@ type Source struct {
 	StatusPage           bool     // used when links in feed does not change but timestamp changes
 	Interests            []string // per-source scoring interests; falls back to the global list
 	MinScore             *float64 // optional per-source threshold; nil falls back to the global threshold
+	MinHackerNewsScore   *int     // optional native HN points threshold
 }
 
 type Config struct {

@@ -1,5 +1,5 @@
 name: mynews
-version: '2.0.0'
+adopt-info: mynews
 summary: Personalized news feed parser & broadcast
 description: Easily specify your RSS/Atom sources and broadcast preferences to get personalized news feed.
 base: core24
@@ -11,6 +11,11 @@ parts:
     source: .
     build-snaps:
       - go/latest/stable
+    # Take the version from git so store builds stop reusing a hard-coded
+    # number: a tag builds as "3.0.0", a later main commit as "3.0.0-8-g799a0c8".
+    override-pull: |
+      craftctl default
+      craftctl set version="$(git describe --tags --always | sed 's/^v//')"
 apps:
   mynews:
     environment:

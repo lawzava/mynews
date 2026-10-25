@@ -1,6 +1,7 @@
 name: mynews
 adopt-info: mynews
 summary: Personalized news feed parser & broadcast
+license: MIT
 description: Easily specify your RSS/Atom sources and broadcast preferences to get personalized news feed.
 base: core24
 confinement: strict
